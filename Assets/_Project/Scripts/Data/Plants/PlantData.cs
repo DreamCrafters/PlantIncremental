@@ -9,4 +9,5 @@ public class PlantData : ScriptableObject
     public int SellPrice = 20;
     public PlantType Type;
     public PlantRarity Rarity;
+    public PlantView ViewPrefab;
 }
