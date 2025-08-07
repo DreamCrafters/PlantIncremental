@@ -18,7 +18,8 @@ public class GameLifetimeScope : LifetimeScope
         builder.Register<ITimeService, TimeService>(Lifetime.Singleton);
         builder.Register<IEconomyService, EconomyService>(Lifetime.Singleton);
         builder.Register<ISaveService, SaveService>(Lifetime.Singleton);
-
+        builder.Register<IGridService, GridService>(Lifetime.Singleton);
+        
         // Регистрация представлений
         builder.RegisterInstance(_coinsView).AsSelf();
 

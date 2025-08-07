@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[System.Serializable]
 public class GridCell
 {
     public Vector2Int Position { get; }
@@ -7,6 +8,13 @@ public class GridCell
     public IPlantEntity Plant { get; private set; }
 
     public bool IsEmpty => Plant == null;
+
+    public GridCell(Vector2Int position, SoilType soilType)
+    {
+        Position = position;
+        SoilType = soilType;
+        Plant = null;
+    }
 
     public bool TryPlant(IPlantEntity plant)
     {
@@ -20,5 +28,19 @@ public class GridCell
         var plant = Plant;
         Plant = null;
         return plant;
+    }
+    
+    /// <summary>
+    /// Получает модификатор скорости роста в зависимости от типа почвы
+    /// </summary>
+    public float GetGrowthModifier()
+    {
+        return SoilType switch
+        {
+            SoilType.Fertile => 1.0f,
+            SoilType.Rocky => 0.7f,
+            SoilType.Unsuitable => 0f,
+            _ => 1.0f
+        };
     }
 }
