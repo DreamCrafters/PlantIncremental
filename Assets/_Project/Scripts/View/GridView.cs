@@ -14,12 +14,10 @@ public class GridView : MonoBehaviour
     
     [Header("Prefabs")]
     [SerializeField] private CellView _cellPrefab;
-    [SerializeField] private GameObject _gridContainer;
     
     [Header("Visual Elements")]
-    [SerializeField] private Transform _plantsContainer;
+    [SerializeField] private Transform _gridContainer;
     [SerializeField] private Transform _effectsContainer;
-    [SerializeField] private LineRenderer _gridLines;
     [SerializeField] private SpriteRenderer _gridBackground;
     
     [Header("UI Elements")]
@@ -31,10 +29,8 @@ public class GridView : MonoBehaviour
     [Header("Effects")]
     [SerializeField] private ParticleSystem _plantEffectPrefab;
     [SerializeField] private ParticleSystem _harvestEffectPrefab;
-    [SerializeField] private GameObject _highlightEffectPrefab;
     
     [Header("Colors")]
-    [SerializeField] private Color _gridLineColor = new Color(0.2f, 0.2f, 0.2f, 0.3f);
     [SerializeField] private Color _fertileColor = new Color(0.4f, 0.8f, 0.3f, 0.3f);
     [SerializeField] private Color _rockyColor = new Color(0.6f, 0.5f, 0.4f, 0.3f);
     [SerializeField] private Color _unsuitableColor = new Color(0.3f, 0.2f, 0.2f, 0.3f);
@@ -47,51 +43,10 @@ public class GridView : MonoBehaviour
     // Состояние
     private Vector2Int _gridSize;
     private PlantPreview _currentPlantPreview;
-    private GameObject _currentHighlight;
     
     private void Awake()
     {
-        InitializeContainers();
         InitializePools();
-    }
-    
-    /// <summary>
-    /// Инициализирует контейнеры для организации иерархии
-    /// </summary>
-    private void InitializeContainers()
-    {
-        if (_gridContainer == null)
-        {
-            _gridContainer = new GameObject("GridContainer");
-            _gridContainer.transform.SetParent(transform);
-            _gridContainer.transform.localPosition = Vector3.zero;
-        }
-        
-        if (_plantsContainer == null)
-        {
-            _plantsContainer = new GameObject("PlantsContainer").transform;
-            _plantsContainer.SetParent(transform);
-            _plantsContainer.localPosition = Vector3.zero;
-        }
-        
-        if (_effectsContainer == null)
-        {
-            _effectsContainer = new GameObject("EffectsContainer").transform;
-            _effectsContainer.SetParent(transform);
-            _effectsContainer.localPosition = Vector3.zero;
-        }
-        
-        if (_floatingUICanvas == null)
-        {
-            var canvasGO = new GameObject("FloatingUICanvas");
-            canvasGO.transform.SetParent(transform);
-            _floatingUICanvas = canvasGO.AddComponent<Canvas>();
-            _floatingUICanvas.renderMode = RenderMode.WorldSpace;
-            _floatingUICanvas.sortingOrder = 100;
-            
-            var canvasScaler = canvasGO.AddComponent<UnityEngine.UI.CanvasScaler>();
-            canvasScaler.dynamicPixelsPerUnit = 100;
-        }
     }
     
     /// <summary>
@@ -115,7 +70,6 @@ public class GridView : MonoBehaviour
         _gridSize = size;
         
         CreateGridBackground();
-        CreateGridLines();
         SetupCamera();
     }
     
@@ -130,7 +84,7 @@ public class GridView : MonoBehaviour
             return _cells[position];
         }
         
-        CellView cellView = Instantiate(_cellPrefab, _gridContainer.transform);
+        CellView cellView = Instantiate(_cellPrefab, _gridContainer);
         var worldPos = GridToWorldPosition(position);
         cellView.transform.position = worldPos;
         
@@ -169,13 +123,6 @@ public class GridView : MonoBehaviour
     /// </summary>
     private void CreateGridBackground()
     {
-        if (_gridBackground == null)
-        {
-            var bgGO = new GameObject("GridBackground");
-            bgGO.transform.SetParent(transform);
-            _gridBackground = bgGO.AddComponent<SpriteRenderer>();
-        }
-        
         _gridBackground.transform.localPosition = Vector3.zero;
         _gridBackground.sortingOrder = -10;
         
@@ -192,59 +139,6 @@ public class GridView : MonoBehaviour
         float totalWidth = _gridSize.x * (_cellSize + _cellSpacing);
         float totalHeight = _gridSize.y * (_cellSize + _cellSpacing);
         _gridBackground.transform.localScale = new Vector3(totalWidth, totalHeight, 1);
-    }
-    
-    /// <summary>
-    /// Создает линии сетки
-    /// </summary>
-    private void CreateGridLines()
-    {
-        if (_gridLines == null)
-        {
-            var linesGO = new GameObject("GridLines");
-            linesGO.transform.SetParent(transform);
-            _gridLines = linesGO.AddComponent<LineRenderer>();
-        }
-        
-        _gridLines.startColor = _gridLineColor;
-        _gridLines.endColor = _gridLineColor;
-        _gridLines.startWidth = 0.02f;
-        _gridLines.endWidth = 0.02f;
-        _gridLines.sortingOrder = -5;
-        
-        // Создаем материал для линий
-        _gridLines.material = new Material(Shader.Find("Sprites/Default"));
-        _gridLines.material.color = _gridLineColor;
-        
-        DrawGridLines();
-    }
-    
-    /// <summary>
-    /// Рисует линии сетки
-    /// </summary>
-    private void DrawGridLines()
-    {
-        var positions = new List<Vector3>();
-        float totalCellSize = _cellSize + _cellSpacing;
-        
-        // Вертикальные линии
-        for (int x = 0; x <= _gridSize.x; x++)
-        {
-            float xPos = x * totalCellSize + _gridOffset.x - _cellSize / 2;
-            positions.Add(new Vector3(xPos, _gridOffset.y - _cellSize / 2, 0));
-            positions.Add(new Vector3(xPos, _gridOffset.y + _gridSize.y * totalCellSize - _cellSize / 2, 0));
-        }
-        
-        // Горизонтальные линии
-        for (int y = 0; y <= _gridSize.y; y++)
-        {
-            float yPos = y * totalCellSize + _gridOffset.y - _cellSize / 2;
-            positions.Add(new Vector3(_gridOffset.x - _cellSize / 2, yPos, 0));
-            positions.Add(new Vector3(_gridOffset.x + _gridSize.x * totalCellSize - _cellSize / 2, yPos, 0));
-        }
-        
-        _gridLines.positionCount = positions.Count;
-        _gridLines.SetPositions(positions.ToArray());
     }
     
     /// <summary>
@@ -288,24 +182,6 @@ public class GridView : MonoBehaviour
     {
         var popup = GetRewardPopup();
         popup.Show(worldPosition, coins, petals);
-    }
-    
-    /// <summary>
-    /// Показывает превью выбранного растения
-    /// </summary>
-    public void ShowSelectedPlant(PlantData plantData)
-    {
-        if (_currentPlantPreview == null)
-        {
-            var previewGO = Instantiate(_plantPreviewPrefab, transform);
-            _currentPlantPreview = previewGO.GetComponent<PlantPreview>();
-        }
-        
-        _currentPlantPreview.SetPlant(plantData);
-        _currentPlantPreview.gameObject.SetActive(true);
-        
-        // Следим за курсором
-        StartCoroutine(FollowCursor());
     }
     
     /// <summary>
@@ -383,7 +259,8 @@ public class GridView : MonoBehaviour
     {
         if (_plantEffectPrefab != null)
         {
-            var effect = Instantiate(_plantEffectPrefab, position, Quaternion.identity, _effectsContainer);
+            var parent = (_effectsContainer != null && _effectsContainer.gameObject.scene.IsValid()) ? _effectsContainer : transform;
+            var effect = Instantiate(_plantEffectPrefab, position, Quaternion.identity, parent);
             Destroy(effect.gameObject, 2f);
         }
     }
@@ -395,7 +272,8 @@ public class GridView : MonoBehaviour
     {
         if (_harvestEffectPrefab != null)
         {
-            var effect = Instantiate(_harvestEffectPrefab, position, Quaternion.identity, _effectsContainer);
+            var parent = (_effectsContainer != null && _effectsContainer.gameObject.scene.IsValid()) ? _effectsContainer : transform;
+            var effect = Instantiate(_harvestEffectPrefab, position, Quaternion.identity, parent);
             Destroy(effect.gameObject, 2f);
         }
     }
@@ -418,7 +296,10 @@ public class GridView : MonoBehaviour
     /// </summary>
     private void CreateRewardPopup()
     {
-        var popup = Instantiate(_rewardPopupPrefab, _floatingUICanvas.transform);
+        return;
+
+        var uiParent = (_floatingUICanvas != null && _floatingUICanvas.gameObject.scene.IsValid()) ? _floatingUICanvas.transform : transform;
+        var popup = Instantiate(_rewardPopupPrefab, uiParent);
         popup.OnComplete += () => _rewardPopupPool.Enqueue(popup);
         popup.gameObject.SetActive(false);
         _rewardPopupPool.Enqueue(popup);
@@ -442,7 +323,10 @@ public class GridView : MonoBehaviour
     /// </summary>
     private void CreateFloatingMessage()
     {
-        var message = Instantiate(_floatingMessagePrefab, _floatingUICanvas.transform);
+        return;
+
+        var uiParent = (_floatingUICanvas != null && _floatingUICanvas.gameObject.scene.IsValid()) ? _floatingUICanvas.transform : transform;
+        var message = Instantiate(_floatingMessagePrefab, uiParent);
         message.OnComplete += () => _messagePool.Enqueue(message);
         message.gameObject.SetActive(false);
         _messagePool.Enqueue(message);
@@ -453,7 +337,6 @@ public class GridView : MonoBehaviour
     /// </summary>
     public void AnimateGridAppearance()
     {
-        // Анимируем появление каждой клетки с задержкой
         foreach (var kvp in _cells)
         {
             var cell = kvp.Value;

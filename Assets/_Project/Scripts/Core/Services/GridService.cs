@@ -43,15 +43,14 @@ public class GridService : IGridService, IDisposable
 
     private SoilType GenerateSoilType(int x, int y)
     {
-        // Улучшенная генерация с паттернами
         var random = UnityEngine.Random.Range(0f, 1f);
-        
+
         // Центр сетки более плодородный
         var center = new Vector2(_settings.GridSize.x / 2f, _settings.GridSize.y / 2f);
         var distance = Vector2.Distance(new Vector2(x, y), center);
         var maxDistance = Vector2.Distance(Vector2.zero, center);
-        var centerBonus = 1f - (distance / maxDistance) * 0.3f;
-        
+        var centerBonus = 1f - distance / maxDistance * 0.3f;
+
         random *= centerBonus;
 
         if (random < 0.6f) return SoilType.Fertile;
@@ -65,15 +64,16 @@ public class GridService : IGridService, IDisposable
         return _grid.Value[position.x, position.y];
     }
 
-    public bool TryPlantAt(Vector2Int position, PlantData data)
+    public bool TryPlantAt(Vector2Int position)
     {
         var cell = GetCell(position);
         if (cell == null || !cell.IsEmpty) return false;
 
-        if (CanPlantOnSoil(data, cell.SoilType) == false) return false;
+        if (cell.SoilType == SoilType.Unsuitable) return false;
 
         var worldPosition = GridToWorldPosition(position);
-        var plant = _plantFactory.CreatePlant(data, worldPosition);
+        var plantData = GetRandomPlantData();
+        var plant = _plantFactory.CreatePlant(plantData, worldPosition);
 
         if (cell.TryPlant(plant))
         {
@@ -111,13 +111,52 @@ public class GridService : IGridService, IDisposable
         return false;
     }
 
-    private bool CanPlantOnSoil(PlantData plant, SoilType soil)
+    private PlantData GetRandomPlantData()
     {
-        if (soil == SoilType.Unsuitable) return false;
+        var plants = _settings.AvailablePlants;
+        if (plants == null || plants.Length == 0) return null;
 
-        // Некоторые растения могут расти только на определенной почве
-        // TODO: Добавить в PlantData предпочтительные типы почвы
-        return true;
+        // Получаем случайную редкость с учётом шансов
+        var selectedRarity = GetRandomRarity();
+        
+        // Фильтруем растения по выбранной редкости
+        var plantsOfRarity = System.Array.FindAll(plants, p => p.Rarity == selectedRarity);
+        
+        // Если растений выбранной редкости нет, возвращаем случайное растение
+        if (plantsOfRarity.Length == 0)
+        {
+            int fallbackIndex = UnityEngine.Random.Range(0, plants.Length);
+            return plants[fallbackIndex];
+        }
+        
+        // Возвращаем случайное растение выбранной редкости
+        int index = UnityEngine.Random.Range(0, plantsOfRarity.Length);
+        return plantsOfRarity[index];
+    }
+
+    private PlantRarity GetRandomRarity()
+    {
+        var rarityChances = _settings.GetNormalizedRarityChances();
+        if (rarityChances == null || rarityChances.Length == 0)
+        {
+            // Если настройки редкости не заданы, возвращаем Common
+            return PlantRarity.Common;
+        }
+
+        float randomValue = UnityEngine.Random.Range(0f, 1f);
+        float cumulativeChance = 0f;
+
+        foreach (var rarityChance in rarityChances)
+        {
+            cumulativeChance += rarityChance.Chance;
+            if (randomValue <= cumulativeChance)
+            {
+                return rarityChance.Rarity;
+            }
+        }
+
+        // Возвращаем последнюю редкость если ничего не выбралось (защита от ошибок конфигурации)
+        return rarityChances[rarityChances.Length - 1].Rarity;
     }
 
     private bool CanHarvest(IPlantEntity plant)
@@ -215,9 +254,9 @@ public class GridService : IGridService, IDisposable
             for (int y = 0; y < grid.GetLength(1); y++)
             {
                 var cell = grid[x, y];
-                
+
                 stats.TotalCells++;
-                
+
                 if (cell.IsEmpty)
                 {
                     stats.EmptyCells++;
@@ -225,7 +264,7 @@ public class GridService : IGridService, IDisposable
                 else
                 {
                     stats.OccupiedCells++;
-                    
+
                     if (cell.Plant.State.Value == PlantState.FullyGrown)
                     {
                         stats.ReadyToHarvest++;

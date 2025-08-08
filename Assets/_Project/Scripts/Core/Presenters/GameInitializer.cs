@@ -3,6 +3,7 @@ using UniRx;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
+using DG.Tweening;
 
 /// <summary>
 /// Основной инициализатор игры, запускает все системы
@@ -39,11 +40,11 @@ public class GameInitializer : IInitializable, IDisposable
     {
         Debug.Log("=== Game Initializer Started ===");
         
+        // Настраиваем DOTween
+        InitializeDOTween();
+        
         // Загружаем сохранение или создаем новую игру
         LoadOrCreateGame();
-        
-        // Инициализируем визуальные эффекты
-        InitializeVisuals();
         
         // Настраиваем автосохранение
         SetupAutoSave();
@@ -57,6 +58,29 @@ public class GameInitializer : IInitializable, IDisposable
         Debug.Log("=== Game Initialized Successfully ===");
     }
     
+    /// <summary>
+    /// Настраивает DOTween для оптимальной производительности
+    /// </summary>
+    private void InitializeDOTween()
+    {
+        // Устанавливаем достаточную емкость для твинов
+        DOTween.SetTweensCapacity(500, 50);
+        
+        // Устанавливаем режим рециркуляции твинов по умолчанию
+        DOTween.defaultRecyclable = true;
+        
+        // Автоматически убиваем твины при отключении компонентов
+        DOTween.defaultAutoKill = true;
+        
+        // Устанавливаем логирование для отладки (можно отключить в продакшене)
+        DOTween.logBehaviour = LogBehaviour.ErrorsOnly;
+        
+        // Инициализируем DOTween
+        DOTween.Init(recycleAllByDefault: true, useSafeMode: true, logBehaviour: LogBehaviour.ErrorsOnly);
+        
+        Debug.Log("DOTween initialized with optimized settings");
+    }
+
     /// <summary>
     /// Загружает сохранение или создает новую игру
     /// </summary>
@@ -114,20 +138,6 @@ public class GameInitializer : IInitializable, IDisposable
         }
         
         Debug.Log("New game started with initial resources");
-    }
-    
-    /// <summary>
-    /// Инициализирует визуальные эффекты
-    /// </summary>
-    private void InitializeVisuals()
-    {
-        // Анимация появления сетки
-        if (_gridView != null)
-        {
-            Observable.Timer(TimeSpan.FromSeconds(0.5f))
-                .Subscribe(_ => _gridView.AnimateGridAppearance())
-                .AddTo(_disposables);
-        }
     }
     
     /// <summary>

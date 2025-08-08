@@ -8,6 +8,7 @@ public class GameLifetimeScope : LifetimeScope
     [SerializeField] private GameSettings _gameSettings;
     [Header("Views")]
     [SerializeField] private CoinsView _coinsView;
+    [SerializeField] private GridView _gridView;
 
     protected override void Configure(IContainerBuilder builder)
     {
@@ -23,6 +24,7 @@ public class GameLifetimeScope : LifetimeScope
         
         // Регистрация представлений
         builder.RegisterInstance(_coinsView).AsSelf();
+        builder.RegisterInstance(_gridView).AsSelf();
 
         // Регистрация фабрик
         builder.Register<IPlantFactory, PlantFactory>(Lifetime.Singleton);

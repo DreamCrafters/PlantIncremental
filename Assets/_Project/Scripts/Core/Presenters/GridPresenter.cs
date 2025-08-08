@@ -11,41 +11,35 @@ using VContainer.Unity;
 public class GridPresenter : IInitializable, IDisposable
 {
     private readonly IGridService _gridService;
-    private readonly IPlantFactory _plantFactory;
     private readonly IPlantGrowthService _growthService;
     private readonly IEconomyService _economyService;
     private readonly GridView _gridView;
     private readonly GameSettings _settings;
-    
+
     private readonly CompositeDisposable _disposables = new();
     private readonly Dictionary<Vector2Int, CellView> _cellViews = new();
-    
-    // Текущее выбранное растение для посадки
-    private PlantData _selectedPlantData;
-    
+
     [Inject]
     public GridPresenter(
         IGridService gridService,
-        IPlantFactory plantFactory,
         IPlantGrowthService growthService,
         IEconomyService economyService,
         GridView gridView,
         GameSettings settings)
     {
         _gridService = gridService;
-        _plantFactory = plantFactory;
         _growthService = growthService;
         _economyService = economyService;
         _gridView = gridView;
         _settings = settings;
     }
-    
+
     public void Initialize()
     {
         InitializeGrid();
         SubscribeToEvents();
     }
-    
+
     /// <summary>
     /// Инициализирует визуальное представление сетки
     /// </summary>
@@ -53,9 +47,9 @@ public class GridPresenter : IInitializable, IDisposable
     {
         var grid = _gridService.Grid.Value;
         if (grid == null) return;
-        
+
         _gridView.InitializeGrid(_settings.GridSize);
-        
+
         // Создаем визуальные клетки
         for (int x = 0; x < grid.GetLength(0); x++)
         {
@@ -64,16 +58,14 @@ public class GridPresenter : IInitializable, IDisposable
                 var position = new Vector2Int(x, y);
                 var cell = grid[x, y];
                 var cellView = _gridView.CreateCellView(position);
-                
+
                 _cellViews[position] = cellView;
                 UpdateCellVisual(cellView, cell);
-                
-                // Подписываемся на клики по клетке
                 SubscribeToCellClick(cellView, position);
             }
         }
     }
-    
+
     /// <summary>
     /// Подписывается на события системы
     /// </summary>
@@ -83,23 +75,23 @@ public class GridPresenter : IInitializable, IDisposable
         _gridService.Grid
             .Subscribe(grid => OnGridChanged(grid))
             .AddTo(_disposables);
-        
+
         // Подписка на клики по клеткам
         _gridService.OnCellClicked
             .Subscribe(cell => OnCellClicked(cell))
             .AddTo(_disposables);
-        
+
         // Подписка на сбор урожая
         _gridService.OnPlantHarvested
             .Subscribe(evt => OnPlantHarvested(evt))
             .AddTo(_disposables);
-        
+
         // Подписка на полный рост растений
         _growthService.OnPlantGrown
             .Subscribe(plant => OnPlantGrown(plant))
             .AddTo(_disposables);
     }
-    
+
     /// <summary>
     /// Подписывается на клики по конкретной клетке
     /// </summary>
@@ -109,7 +101,7 @@ public class GridPresenter : IInitializable, IDisposable
             .Subscribe(_ => HandleCellClick(position))
             .AddTo(_disposables);
     }
-    
+
     /// <summary>
     /// Обрабатывает клик по клетке
     /// </summary>
@@ -117,7 +109,7 @@ public class GridPresenter : IInitializable, IDisposable
     {
         var cell = _gridService.GetCell(position);
         if (cell == null) return;
-        
+
         if (cell.IsEmpty)
         {
             // Пытаемся посадить растение
@@ -129,39 +121,22 @@ public class GridPresenter : IInitializable, IDisposable
             TryHarvestAt(position);
         }
     }
-    
+
     /// <summary>
     /// Пытается посадить растение в указанную позицию
     /// </summary>
     private void TryPlantAt(Vector2Int position)
     {
-        if (_selectedPlantData == null)
-        {
-            // Показываем UI выбора растения
-            ShowPlantSelectionUI(position);
-            return;
-        }
-        
-        // Проверяем, можем ли позволить себе это растение
-        if (CanAffordPlant(_selectedPlantData) == false)
-        {
-            ShowInsufficientFundsMessage();
-            return;
-        }
-        
         // Пытаемся посадить
-        if (_gridService.TryPlantAt(position, _selectedPlantData))
+        if (_gridService.TryPlantAt(position))
         {
-            // Списываем стоимость
-            PayForPlant(_selectedPlantData);
-            
             // Запускаем рост
             var cell = _gridService.GetCell(position);
             if (cell?.Plant != null)
             {
                 _growthService.StartGrowing(cell.Plant);
             }
-            
+
             // Визуальный эффект посадки
             PlayPlantEffect(position);
         }
@@ -170,7 +145,7 @@ public class GridPresenter : IInitializable, IDisposable
             ShowCannotPlantMessage(position);
         }
     }
-    
+
     /// <summary>
     /// Пытается собрать урожай в указанной позиции
     /// </summary>
@@ -182,14 +157,14 @@ public class GridPresenter : IInitializable, IDisposable
             PlayHarvestEffect(position);
         }
     }
-    
+
     /// <summary>
     /// Обработка изменения сетки
     /// </summary>
     private void OnGridChanged(GridCell[,] grid)
     {
         if (grid == null) return;
-        
+
         // Обновляем визуальное представление всех клеток
         for (int x = 0; x < grid.GetLength(0); x++)
         {
@@ -202,29 +177,19 @@ public class GridPresenter : IInitializable, IDisposable
                 }
             }
         }
+
+        _gridView.AnimateGridAppearance();
     }
-    
+
     /// <summary>
     /// Обновляет визуал конкретной клетки
     /// </summary>
     private void UpdateCellVisual(CellView cellView, GridCell cell)
     {
         cellView.UpdateVisual(cell);
-        
-        // Обновляем индикатор типа почвы
-        cellView.SetSoilType(cell.SoilType);
-        
-        // Если есть растение, обновляем его визуал
-        if (cell.IsEmpty == false)
-        {
-            cellView.ShowPlant(true);
-        }
-        else
-        {
-            cellView.ShowPlant(false);
-        }
+        cellView.ShowPlant(cell.IsEmpty == false);
     }
-    
+
     /// <summary>
     /// Обработка клика по клетке
     /// </summary>
@@ -234,14 +199,14 @@ public class GridPresenter : IInitializable, IDisposable
         if (_cellViews.TryGetValue(cell.Position, out var cellView))
         {
             cellView.SetHighlight(true);
-            
+
             // Убираем подсветку через время
             Observable.Timer(TimeSpan.FromSeconds(0.5f))
                 .Subscribe(_ => cellView.SetHighlight(false))
                 .AddTo(_disposables);
         }
     }
-    
+
     /// <summary>
     /// Обработка события сбора урожая
     /// </summary>
@@ -249,25 +214,25 @@ public class GridPresenter : IInitializable, IDisposable
     {
         // Добавляем награды
         _economyService.AddCoins(evt.Reward);
-        
+
         if (evt.Plant is PlantEntity entity)
         {
             var harvestResult = entity.Harvest();
-            
+
             // Добавляем лепестки
             if (harvestResult.Petals.Amount > 0)
             {
                 _economyService.AddPetals(harvestResult.Petals.Type, harvestResult.Petals.Amount);
             }
-            
+
             // Показываем всплывающее сообщение о награде
             ShowRewardPopup(evt.Position, harvestResult);
         }
-        
+
         // Останавливаем рост (уже собрано)
         _growthService.StopGrowing(evt.Plant);
     }
-    
+
     /// <summary>
     /// Обработка полного роста растения
     /// </summary>
@@ -281,7 +246,7 @@ public class GridPresenter : IInitializable, IDisposable
             cellView.ShowHarvestReady(true);
         }
     }
-    
+
     /// <summary>
     /// Находит клетку с указанным растением
     /// </summary>
@@ -289,7 +254,7 @@ public class GridPresenter : IInitializable, IDisposable
     {
         var grid = _gridService.Grid.Value;
         if (grid == null) return null;
-        
+
         for (int x = 0; x < grid.GetLength(0); x++)
         {
             for (int y = 0; y < grid.GetLength(1); y++)
@@ -300,21 +265,10 @@ public class GridPresenter : IInitializable, IDisposable
                 }
             }
         }
-        
+
         return null;
     }
-    
-    /// <summary>
-    /// Проверяет, может ли игрок позволить себе растение
-    /// </summary>
-    private bool CanAffordPlant(PlantData plantData)
-    {
-        // TODO: Добавить стоимость в PlantData
-        // Пока используем базовую стоимость
-        var cost = GetPlantCost(plantData);
-        return _economyService.Coins.Value >= cost;
-    }
-    
+
     /// <summary>
     /// Получает стоимость растения
     /// </summary>
@@ -331,53 +285,20 @@ public class GridPresenter : IInitializable, IDisposable
             _ => 10
         };
     }
-    
-    /// <summary>
-    /// Оплачивает посадку растения
-    /// </summary>
-    private void PayForPlant(PlantData plantData)
-    {
-        var cost = GetPlantCost(plantData);
-        _economyService.TrySpendCoins(cost);
-    }
-    
-    /// <summary>
-    /// Показывает UI выбора растения
-    /// </summary>
-    private void ShowPlantSelectionUI(Vector2Int targetPosition)
-    {
-        // TODO: Интеграция с UI системой
-        Debug.Log($"Show plant selection for position {targetPosition}");
-        
-        // Временно выбираем первое доступное растение
-        if (_settings.AvailablePlants != null && _settings.AvailablePlants.Length > 0)
-        {
-            _selectedPlantData = _settings.AvailablePlants[0];
-            TryPlantAt(targetPosition);
-        }
-    }
-    
-    /// <summary>
-    /// Показывает сообщение о недостатке средств
-    /// </summary>
-    private void ShowInsufficientFundsMessage()
-    {
-        _gridView.ShowMessage("Недостаточно монет!", MessageType.Error);
-    }
-    
+
     /// <summary>
     /// Показывает сообщение о невозможности посадки
     /// </summary>
     private void ShowCannotPlantMessage(Vector2Int position)
     {
         var cell = _gridService.GetCell(position);
-        var message = cell?.SoilType == SoilType.Unsuitable 
-            ? "Непригодная почва!" 
+        var message = cell?.SoilType == SoilType.Unsuitable
+            ? "Непригодная почва!"
             : "Нельзя посадить здесь!";
-        
+
         _gridView.ShowMessage(message, MessageType.Warning);
     }
-    
+
     /// <summary>
     /// Показывает всплывающее окно с наградой
     /// </summary>
@@ -392,7 +313,7 @@ public class GridPresenter : IInitializable, IDisposable
             );
         }
     }
-    
+
     /// <summary>
     /// Воспроизводит эффект посадки
     /// </summary>
@@ -403,7 +324,7 @@ public class GridPresenter : IInitializable, IDisposable
             cellView.PlayPlantEffect();
         }
     }
-    
+
     /// <summary>
     /// Воспроизводит эффект сбора урожая
     /// </summary>
@@ -414,16 +335,7 @@ public class GridPresenter : IInitializable, IDisposable
             cellView.PlayHarvestEffect();
         }
     }
-    
-    /// <summary>
-    /// Устанавливает выбранное растение для посадки
-    /// </summary>
-    public void SelectPlantForPlanting(PlantData plantData)
-    {
-        _selectedPlantData = plantData;
-        _gridView.ShowSelectedPlant(plantData);
-    }
-    
+
     public void Dispose()
     {
         _disposables?.Dispose();

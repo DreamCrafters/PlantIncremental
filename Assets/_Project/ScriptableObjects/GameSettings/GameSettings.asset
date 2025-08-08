@@ -16,3 +16,14 @@ MonoBehaviour:
   AutoSaveInterval: 30
   DayDuration: 180
   AvailablePlants: []
+  RarityChances:
+  - Rarity: 0
+    Chance: 0.6
+  - Rarity: 1
+    Chance: 0.25
+  - Rarity: 2
+    Chance: 0.1
+  - Rarity: 3
+    Chance: 0.04
+  - Rarity: 4
+    Chance: 0.01

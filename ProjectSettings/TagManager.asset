@@ -41,3 +41,9 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Grid
+    uniqueID: 3882286827
+    locked: 0
+  - name: Plant
+    uniqueID: 2718807635
+    locked: 0

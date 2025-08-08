@@ -21,7 +21,6 @@ public class CellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandle
     [SerializeField] private Sprite _fertileSprite;
     [SerializeField] private Sprite _rockySprite;
     [SerializeField] private Sprite _unsuitableSprite;
-    [SerializeField] private Sprite _highlightSprite;
 
     [Header("Colors")]
     [SerializeField] private Color _normalColor = Color.white;
@@ -51,69 +50,66 @@ public class CellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandle
 
     private void Awake()
     {
-        InitializeComponents();
-        _originalScale = transform.localScale;
-    }
-
-    /// <summary>
-    /// Инициализирует компоненты клетки
-    /// </summary>
-    private void InitializeComponents()
-    {
-        // Основной рендерер
-        if (_baseRenderer == null)
-        {
-            _baseRenderer = GetComponent<SpriteRenderer>();
-        }
-
-        // Рендерер почвы
-        if (_soilRenderer == null)
-        {
-            var soilGO = new GameObject("SoilRenderer");
-            soilGO.transform.SetParent(transform);
-            soilGO.transform.localPosition = Vector3.zero;
-            _soilRenderer = soilGO.AddComponent<SpriteRenderer>();
-            _soilRenderer.sortingOrder = _baseRenderer.sortingOrder + 1;
-        }
-
-        // Рендерер подсветки
-        if (_highlightRenderer == null)
-        {
-            var highlightGO = new GameObject("HighlightRenderer");
-            highlightGO.transform.SetParent(transform);
-            highlightGO.transform.localPosition = Vector3.zero;
-            _highlightRenderer = highlightGO.AddComponent<SpriteRenderer>();
-            _highlightRenderer.sortingOrder = _baseRenderer.sortingOrder + 2;
-            _highlightRenderer.enabled = false;
-        }
-
-        // Индикатор готовности к сбору
-        if (_harvestIndicator == null)
-        {
-            CreateHarvestIndicator();
-        }
-
-        // Коллайдер для кликов
-        _collider = GetComponent<BoxCollider2D>();
-        if (_collider == null)
+        if (TryGetComponent(out _collider) == false)
         {
             _collider = gameObject.AddComponent<BoxCollider2D>();
         }
 
-        // Настройка EventSystem для UI
-        EnsureEventSystem();
+        _originalScale = transform.localScale;
+    }
+
+    private void OnDestroy()
+    {
+        DOTween.Kill(transform);
+        DOTween.Kill(_baseRenderer);
+        DOTween.Kill(_soilRenderer);
+        DOTween.Kill(_highlightRenderer);
+
+        if (_harvestIndicator != null)
+        {
+            DOTween.Kill(_harvestIndicator.transform);
+        }
+
+        _onClick?.Dispose();
     }
 
     /// <summary>
-    /// Проверяет наличие EventSystem в сцене
+    /// Обработка клика по клетке
     /// </summary>
-    private void EnsureEventSystem()
+    public void OnPointerClick(PointerEventData eventData)
     {
-        if (EventSystem.current == null)
+        if (eventData.button == PointerEventData.InputButton.Left)
         {
-            var eventSystemGO = new GameObject("EventSystem");
-            eventSystemGO.AddComponent<EventSystem>();
-            eventSystemGO.AddComponent<StandaloneInputModule>();
+            _onClick.OnNext(Unit.Default);
+
+            // Визуальный отклик на клик
+            transform.DOScale(_originalScale * 0.95f, 0.05f)
+                .OnComplete(() => transform.DOScale(_originalScale, 0.05f));
+        }
+    }
+
+    /// <summary>
+    /// Обработка наведения курсора
+    /// </summary>
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (_isHighlighted == false)
+        {
+            // Легкая подсветка при наведении
+            _baseRenderer.color = Color.Lerp(_normalColor, _highlightColor, 0.3f);
+            transform.DOScale(_originalScale * 1.02f, 0.1f);
+        }
+    }
+
+    /// <summary>
+    /// Обработка ухода курсора
+    /// </summary>
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (_isHighlighted == false)
+        {
+            _baseRenderer.color = _normalColor;
+            transform.DOScale(_originalScale, 0.1f);
         }
     }
 
@@ -123,47 +119,8 @@ public class CellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandle
     public void Initialize(Vector2Int gridPosition, float cellSize)
     {
         _gridPosition = gridPosition;
-
-        // Настраиваем размер коллайдера
         _collider.size = Vector2.one * cellSize;
-
-        // Настраиваем размер спрайтов
         transform.localScale = Vector3.one * cellSize;
-
-        // Создаем базовый спрайт клетки если его нет
-        if (_baseRenderer.sprite == null)
-        {
-            CreateDefaultSprite();
-        }
-    }
-
-    /// <summary>
-    /// Создает дефолтный спрайт для клетки
-    /// </summary>
-    private void CreateDefaultSprite()
-    {
-        var texture = new Texture2D(32, 32);
-
-        // Рисуем простую клетку с рамкой
-        for (int x = 0; x < 32; x++)
-        {
-            for (int y = 0; y < 32; y++)
-            {
-                if (x < 2 || x >= 30 || y < 2 || y >= 30)
-                {
-                    texture.SetPixel(x, y, new Color(0.3f, 0.3f, 0.3f, 1f));
-                }
-                else
-                {
-                    texture.SetPixel(x, y, new Color(0.9f, 0.85f, 0.7f, 1f));
-                }
-            }
-        }
-
-        texture.Apply();
-        texture.filterMode = FilterMode.Point;
-
-        _baseRenderer.sprite = Sprite.Create(texture, new Rect(0, 0, 32, 32), Vector2.one * 0.5f, 32);
     }
 
     /// <summary>
@@ -188,47 +145,6 @@ public class CellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandle
     }
 
     /// <summary>
-    /// Устанавливает тип почвы для визуализации
-    /// </summary>
-    public void SetSoilType(SoilType soilType)
-    {
-        _currentSoilType = soilType;
-
-        // Обновляем спрайт почвы
-        _soilRenderer.sprite = soilType switch
-        {
-            SoilType.Fertile => _fertileSprite,
-            SoilType.Rocky => _rockySprite,
-            SoilType.Unsuitable => _unsuitableSprite,
-            _ => null
-        };
-
-        // Обновляем цвет почвы
-        _soilRenderer.color = GetSoilColor(soilType);
-
-        // Анимация смены типа почвы
-        if (_soilRenderer.sprite != null)
-        {
-            _soilRenderer.transform.DOScale(1.1f, 0.2f)
-                .OnComplete(() => _soilRenderer.transform.DOScale(1f, 0.1f));
-        }
-    }
-
-    /// <summary>
-    /// Получает цвет для типа почвы
-    /// </summary>
-    private Color GetSoilColor(SoilType soilType)
-    {
-        return soilType switch
-        {
-            SoilType.Fertile => new Color(0.4f, 0.8f, 0.3f, 0.5f),
-            SoilType.Rocky => new Color(0.6f, 0.5f, 0.4f, 0.5f),
-            SoilType.Unsuitable => new Color(0.3f, 0.2f, 0.2f, 0.5f),
-            _ => Color.white
-        };
-    }
-
-    /// <summary>
     /// Показывает или скрывает растение на клетке
     /// </summary>
     public void ShowPlant(bool show)
@@ -237,7 +153,6 @@ public class CellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandle
 
         if (show == false && _currentPlantView != null)
         {
-            // Удаляем растение
             Destroy(_currentPlantView.gameObject);
             _currentPlantView = null;
         }
@@ -366,82 +281,6 @@ public class CellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandle
     }
 
     /// <summary>
-    /// Создает индикатор готовности к сбору
-    /// </summary>
-    private void CreateHarvestIndicator()
-    {
-        _harvestIndicator = new GameObject("HarvestIndicator");
-        _harvestIndicator.transform.SetParent(transform);
-        _harvestIndicator.transform.localPosition = new Vector3(0.3f, 0.3f, 0);
-
-        var indicatorSprite = _harvestIndicator.AddComponent<SpriteRenderer>();
-        indicatorSprite.sortingOrder = 100;
-
-        // Создаем простой спрайт индикатора
-        var texture = new Texture2D(16, 16);
-        for (int x = 0; x < 16; x++)
-        {
-            for (int y = 0; y < 16; y++)
-            {
-                float dist = Vector2.Distance(new Vector2(x, y), Vector2.one * 8);
-                if (dist < 7)
-                {
-                    texture.SetPixel(x, y, new Color(1f, 0.9f, 0.2f, 1f));
-                }
-                else
-                {
-                    texture.SetPixel(x, y, Color.clear);
-                }
-            }
-        }
-        texture.Apply();
-        texture.filterMode = FilterMode.Point;
-
-        indicatorSprite.sprite = Sprite.Create(texture, new Rect(0, 0, 16, 16), Vector2.one * 0.5f, 16);
-        _harvestIndicator.SetActive(false);
-    }
-
-    /// <summary>
-    /// Обработка клика по клетке
-    /// </summary>
-    public void OnPointerClick(PointerEventData eventData)
-    {
-        if (eventData.button == PointerEventData.InputButton.Left)
-        {
-            _onClick.OnNext(Unit.Default);
-
-            // Визуальный отклик на клик
-            transform.DOScale(_originalScale * 0.95f, 0.05f)
-                .OnComplete(() => transform.DOScale(_originalScale, 0.05f));
-        }
-    }
-
-    /// <summary>
-    /// Обработка наведения курсора
-    /// </summary>
-    public void OnPointerEnter(PointerEventData eventData)
-    {
-        if (_isHighlighted == false)
-        {
-            // Легкая подсветка при наведении
-            _baseRenderer.color = Color.Lerp(_normalColor, _highlightColor, 0.3f);
-            transform.DOScale(_originalScale * 1.02f, 0.1f);
-        }
-    }
-
-    /// <summary>
-    /// Обработка ухода курсора
-    /// </summary>
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        if (_isHighlighted == false)
-        {
-            _baseRenderer.color = _normalColor;
-            transform.DOScale(_originalScale, 0.1f);
-        }
-    }
-
-    /// <summary>
     /// Анимация недоступности клетки
     /// </summary>
     public void ShowUnavailable()
@@ -496,18 +335,41 @@ public class CellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandle
         return _isHarvestReady;
     }
 
-    private void OnDestroy()
+    /// <summary>
+    /// Устанавливает тип почвы для визуализации
+    /// </summary>
+    private void SetSoilType(SoilType soilType)
     {
-        DOTween.Kill(transform);
-        DOTween.Kill(_baseRenderer);
-        DOTween.Kill(_soilRenderer);
-        DOTween.Kill(_highlightRenderer);
+        _currentSoilType = soilType;
 
-        if (_harvestIndicator != null)
+        // Обновляем спрайт почвы
+        _soilRenderer.sprite = soilType switch
         {
-            DOTween.Kill(_harvestIndicator.transform);
-        }
+            SoilType.Fertile => _fertileSprite,
+            SoilType.Rocky => _rockySprite,
+            SoilType.Unsuitable => _unsuitableSprite,
+            _ => null
+        };
 
-        _onClick?.Dispose();
+        // Обновляем цвет почвы
+        _soilRenderer.color = GetSoilColor(soilType);
+
+        // Анимация смены типа почвы
+        if (_soilRenderer.sprite != null)
+        {
+            _soilRenderer.transform.DOScale(1.1f, 0.2f)
+                .OnComplete(() => _soilRenderer.transform.DOScale(1f, 0.1f));
+        }
+    }
+
+    private Color GetSoilColor(SoilType soilType)
+    {
+        return soilType switch
+        {
+            SoilType.Fertile => new Color(0.4f, 0.8f, 0.3f, 0.5f),
+            SoilType.Rocky => new Color(0.6f, 0.5f, 0.4f, 0.5f),
+            SoilType.Unsuitable => new Color(0.3f, 0.2f, 0.2f, 0.5f),
+            _ => Color.white
+        };
     }
 }

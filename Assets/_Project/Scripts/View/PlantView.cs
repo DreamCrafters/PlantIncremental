@@ -21,7 +21,6 @@ public class PlantView : MonoBehaviour
     [Header("Animation Settings")]
     [SerializeField] private float _growthAnimationDuration = 0.5f;
     [SerializeField] private float _harvestAnimationDuration = 0.3f;
-    [SerializeField] private AnimationCurve _bounceCurve;
     
     // Кэшированные компоненты
     private Vector3 _originalScale;
