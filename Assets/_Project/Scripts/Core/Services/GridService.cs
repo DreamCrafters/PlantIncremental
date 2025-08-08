@@ -43,9 +43,16 @@ public class GridService : IGridService, IDisposable
 
     private SoilType GenerateSoilType(int x, int y)
     {
-        // Временная логика генерации типов почвы
-        // 60% плодородная, 30% каменистая, 10% непригодная
+        // Улучшенная генерация с паттернами
         var random = UnityEngine.Random.Range(0f, 1f);
+        
+        // Центр сетки более плодородный
+        var center = new Vector2(_settings.GridSize.x / 2f, _settings.GridSize.y / 2f);
+        var distance = Vector2.Distance(new Vector2(x, y), center);
+        var maxDistance = Vector2.Distance(Vector2.zero, center);
+        var centerBonus = 1f - (distance / maxDistance) * 0.3f;
+        
+        random *= centerBonus;
 
         if (random < 0.6f) return SoilType.Fertile;
         if (random < 0.9f) return SoilType.Rocky;
@@ -108,7 +115,8 @@ public class GridService : IGridService, IDisposable
     {
         if (soil == SoilType.Unsuitable) return false;
 
-        // TODO: Добавить специальную логику для разных типов растений
+        // Некоторые растения могут расти только на определенной почве
+        // TODO: Добавить в PlantData предпочтительные типы почвы
         return true;
     }
 
@@ -120,7 +128,6 @@ public class GridService : IGridService, IDisposable
     private Vector2 GridToWorldPosition(Vector2Int gridPos)
     {
         // Преобразование координат сетки в мировые координаты
-        // Предполагаем, что клетки имеют размер 1x1
         const float cellSize = 1f;
         const float offsetX = -2.5f; // Центрирование сетки 6x6
         const float offsetY = -2.5f;
@@ -169,18 +176,88 @@ public class GridService : IGridService, IDisposable
         return neighbors.ToArray();
     }
 
+    /// <summary>
+    /// Улучшает тип почвы в указанной позиции
+    /// </summary>
+    public bool TryImproveSoil(Vector2Int position)
+    {
+        var cell = GetCell(position);
+        if (cell == null || !cell.IsEmpty) return false;
+
+        var newSoilType = cell.SoilType switch
+        {
+            SoilType.Unsuitable => SoilType.Rocky,
+            SoilType.Rocky => SoilType.Fertile,
+            SoilType.Fertile => SoilType.Fertile, // Уже максимальный уровень
+            _ => cell.SoilType
+        };
+
+        if (newSoilType != cell.SoilType)
+        {
+            cell.SoilType = newSoilType;
+            _grid.SetValueAndForceNotify(_grid.Value);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Получает статистику сетки
+    /// </summary>
+    public GridStatistics GetStatistics()
+    {
+        var stats = new GridStatistics();
+        var grid = _grid.Value;
+
+        for (int x = 0; x < grid.GetLength(0); x++)
+        {
+            for (int y = 0; y < grid.GetLength(1); y++)
+            {
+                var cell = grid[x, y];
+                
+                stats.TotalCells++;
+                
+                if (cell.IsEmpty)
+                {
+                    stats.EmptyCells++;
+                }
+                else
+                {
+                    stats.OccupiedCells++;
+                    
+                    if (cell.Plant.State.Value == PlantState.FullyGrown)
+                    {
+                        stats.ReadyToHarvest++;
+                    }
+                    else if (cell.Plant.State.Value == PlantState.Withered)
+                    {
+                        stats.WitheredPlants++;
+                    }
+                }
+
+                switch (cell.SoilType)
+                {
+                    case SoilType.Fertile:
+                        stats.FertileCells++;
+                        break;
+                    case SoilType.Rocky:
+                        stats.RockyCells++;
+                        break;
+                    case SoilType.Unsuitable:
+                        stats.UnsuitableCells++;
+                        break;
+                }
+            }
+        }
+
+        return stats;
+    }
+
     public void Dispose()
     {
         _disposables?.Dispose();
         _onCellClicked?.Dispose();
         _onPlantHarvested?.Dispose();
     }
-}
-
-// События для системы сетки
-public struct PlantHarvestedEvent
-{
-    public IPlantEntity Plant;
-    public Vector2Int Position;
-    public int Reward;
 }

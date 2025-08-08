@@ -19,6 +19,7 @@ public class GameLifetimeScope : LifetimeScope
         builder.Register<IEconomyService, EconomyService>(Lifetime.Singleton);
         builder.Register<ISaveService, SaveService>(Lifetime.Singleton);
         builder.Register<IGridService, GridService>(Lifetime.Singleton);
+        builder.Register<IPlantGrowthService, PlantGrowthService>(Lifetime.Singleton);
         
         // Регистрация представлений
         builder.RegisterInstance(_coinsView).AsSelf();
@@ -29,8 +30,9 @@ public class GameLifetimeScope : LifetimeScope
         // Entry points
         builder.UseEntryPoints(entryPoint =>
         {
-            // entryPoint.Add<GameInitializer>();
+            entryPoint.Add<GameInitializer>();
             entryPoint.Add<CoinsPresenter>();
+            entryPoint.Add<GridPresenter>();
         });
     }
 }
