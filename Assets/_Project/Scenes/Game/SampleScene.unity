@@ -709,7 +709,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1845838094995072455, guid: b5ad3a1a4047444adad6be9f55a244ad, type: 3}
   m_PrefabInstance: {fileID: 921112745}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1029716303}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: efde663b682bc4a5096d1e0e0033b979, type: 3}
@@ -747,6 +747,11 @@ Transform:
   - {fileID: 1999134883}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1029716303 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5311471211920128542, guid: b5ad3a1a4047444adad6be9f55a244ad, type: 3}
+  m_PrefabInstance: {fileID: 921112745}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1276422997
 GameObject:
   m_ObjectHideFlags: 0
@@ -896,7 +901,8 @@ MonoBehaviour:
   parentReference:
     TypeName: 
   autoRun: 1
-  autoInjectGameObjects: []
+  autoInjectGameObjects:
+  - {fileID: 1029716303}
   _gameSettings: {fileID: 11400000, guid: 5c96bc574a05d46d4874a538487859c5, type: 2}
   _coinsView: {fileID: 524790438}
   _gridView: {fileID: 921112747}

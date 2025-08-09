@@ -14,7 +14,6 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
     private readonly Subject<IPlantEntity> _onPlantGrown = new();
     private readonly CompositeDisposable _disposables = new();
     
-    private readonly ITimeService _timeService;
     private readonly IGridService _gridService;
     
     // Кэш для оптимизации
@@ -23,9 +22,8 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
     public IObservable<IPlantEntity> OnPlantGrown => _onPlantGrown;
     
     [Inject]
-    public PlantGrowthService(ITimeService timeService, IGridService gridService)
+    public PlantGrowthService(IGridService gridService)
     {
-        _timeService = timeService;
         _gridService = gridService;
         
         // Обновляем модификаторы роста каждые 5 секунд
@@ -88,6 +86,58 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
         }
     }
     
+    /// <summary>
+    /// Применяет временный бонус к росту всех растений
+    /// </summary>
+    public void ApplyTemporaryGrowthBoost(float multiplier, float duration)
+    {
+        Observable.Timer(TimeSpan.FromSeconds(duration))
+            .Subscribe(_ =>
+            {
+                // Сбрасываем бонус
+                UpdateAllGrowthModifiers();
+            })
+            .AddTo(_disposables);
+        
+        // Применяем бонус
+        foreach (var plant in _growingPlants.Keys)
+        {
+            if (plant is PlantEntity entity)
+            {
+                var currentModifier = _growthModifiers[plant];
+                entity.ApplyGrowthModifier(currentModifier * multiplier);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Возвращает статистику роста
+    /// </summary>
+    public GrowthStatistics GetStatistics()
+    {
+        return new GrowthStatistics
+        {
+            TotalGrowingPlants = _growingPlants.Count,
+            AverageGrowthModifier = _growthModifiers.Any() ? _growthModifiers.Values.Average() : 1f,
+            FastestGrowingPlant = GetFastestGrowingPlant(),
+            SlowestGrowingPlant = GetSlowestGrowingPlant()
+        };
+    }
+
+    public void Dispose()
+    {
+        // Останавливаем рост всех растений
+        foreach (var plant in _growingPlants.Keys.ToList())
+        {
+            StopGrowing(plant);
+        }
+        
+        _growingPlants.Clear();
+        _growthModifiers.Clear();
+        _onPlantGrown?.Dispose();
+        _disposables?.Dispose();
+    }
+
     /// <summary>
     /// Рассчитывает модификатор скорости роста на основе окружения
     /// </summary>
@@ -257,44 +307,6 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
         return 1f;
     }
     
-    /// <summary>
-    /// Применяет временный бонус к росту всех растений
-    /// </summary>
-    public void ApplyTemporaryGrowthBoost(float multiplier, float duration)
-    {
-        Observable.Timer(TimeSpan.FromSeconds(duration))
-            .Subscribe(_ =>
-            {
-                // Сбрасываем бонус
-                UpdateAllGrowthModifiers();
-            })
-            .AddTo(_disposables);
-        
-        // Применяем бонус
-        foreach (var plant in _growingPlants.Keys)
-        {
-            if (plant is PlantEntity entity)
-            {
-                var currentModifier = _growthModifiers[plant];
-                entity.ApplyGrowthModifier(currentModifier * multiplier);
-            }
-        }
-    }
-    
-    /// <summary>
-    /// Возвращает статистику роста
-    /// </summary>
-    public GrowthStatistics GetStatistics()
-    {
-        return new GrowthStatistics
-        {
-            TotalGrowingPlants = _growingPlants.Count,
-            AverageGrowthModifier = _growthModifiers.Any() ? _growthModifiers.Values.Average() : 1f,
-            FastestGrowingPlant = GetFastestGrowingPlant(),
-            SlowestGrowingPlant = GetSlowestGrowingPlant()
-        };
-    }
-    
     private IPlantEntity GetFastestGrowingPlant()
     {
         if (_growthModifiers.Any() == false) return null;
@@ -309,19 +321,5 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
         
         var slowest = _growthModifiers.OrderBy(kvp => kvp.Value).FirstOrDefault();
         return slowest.Key;
-    }
-    
-    public void Dispose()
-    {
-        // Останавливаем рост всех растений
-        foreach (var plant in _growingPlants.Keys.ToList())
-        {
-            StopGrowing(plant);
-        }
-        
-        _growingPlants.Clear();
-        _growthModifiers.Clear();
-        _onPlantGrown?.Dispose();
-        _disposables?.Dispose();
     }
 }

@@ -25,8 +25,7 @@ public class PlantEntity : IPlantEntity, IDisposable
     public PlantData Data { get; }
     public IReadOnlyReactiveProperty<float> GrowthProgress => _growthProgress;
     public IReadOnlyReactiveProperty<PlantState> State => _state;
-
-    // Дополнительные свойства для геймплея
+    public PlantView View => _view;
     public bool IsHarvestable => _state.Value == PlantState.FullyGrown;
     public bool IsWithered => _state.Value == PlantState.Withered;
     public Vector2 Position => _view.transform.position;
@@ -114,6 +113,15 @@ public class PlantEntity : IPlantEntity, IDisposable
         _view.ShowPassiveEffect();
     }
 
+    /// <summary>
+    /// Останавливает процесс роста (и очищает подписки)
+    /// </summary>
+    public void StopGrowing()
+    {
+        // Отписываемся от обновлений роста
+        _disposables.Clear();
+    }
+
     private void UpdateGrowth()
     {
         if (_growthSpeedModifier <= 0f) return;
@@ -169,7 +177,7 @@ public class PlantEntity : IPlantEntity, IDisposable
         var stageIndex = GetSpriteIndexForState(_state.Value);
         if (stageIndex < Data.GrowthStages.Length)
         {
-            _view.UpdateSprite(Data.GrowthStages[stageIndex]);
+            _view.UpdateSprite(Data.GrowthStages[stageIndex].Sprite);
         }
 
         // Обновляем цвет в зависимости от состояния
@@ -188,7 +196,7 @@ public class PlantEntity : IPlantEntity, IDisposable
             PlantState.Growing => 2,
             PlantState.Mature => 3,
             PlantState.FullyGrown => 4,
-            PlantState.Withered => 4, // Используем последний спрайт, но с эффектом
+            PlantState.Withered => 5,
             _ => 0
         };
     }
@@ -314,11 +322,5 @@ public class PlantEntity : IPlantEntity, IDisposable
         {
             _view.PlayHarvestAnimation();
         }
-    }
-
-    public void StopGrowing()
-    {
-        // Отписываемся от обновлений роста
-        _disposables.Clear();
     }
 }

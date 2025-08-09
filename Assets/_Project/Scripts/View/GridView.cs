@@ -1,146 +1,335 @@
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
+using VContainer;
 
 /// <summary>
 /// Визуальное представление игровой сетки
 /// </summary>
 public class GridView : MonoBehaviour
 {
-    [Header("Grid Settings")]
-    [SerializeField] private float _cellSize = 1f;
-    [SerializeField] private float _cellSpacing = 0.1f;
-    [SerializeField] private Vector2 _gridOffset = new Vector2(-2.5f, -2.5f);
-    
+    [Inject] private readonly GameSettings _gameSettings;
+
     [Header("Prefabs")]
-    [SerializeField] private CellView _cellPrefab;
-    
-    [Header("Visual Elements")]
-    [SerializeField] private Transform _gridContainer;
-    [SerializeField] private Transform _effectsContainer;
-    [SerializeField] private SpriteRenderer _gridBackground;
-    
-    [Header("UI Elements")]
-    [SerializeField] private Canvas _floatingUICanvas;
+    [SerializeField] private GridCellView _cellPrefab;
     [SerializeField] private RewardPopup _rewardPopupPrefab;
     [SerializeField] private FloatingMessage _floatingMessagePrefab;
-    [SerializeField] private PlantPreview _plantPreviewPrefab;
-    
-    [Header("Effects")]
-    [SerializeField] private ParticleSystem _plantEffectPrefab;
-    [SerializeField] private ParticleSystem _harvestEffectPrefab;
-    
-    [Header("Colors")]
-    [SerializeField] private Color _fertileColor = new Color(0.4f, 0.8f, 0.3f, 0.3f);
-    [SerializeField] private Color _rockyColor = new Color(0.6f, 0.5f, 0.4f, 0.3f);
-    [SerializeField] private Color _unsuitableColor = new Color(0.3f, 0.2f, 0.2f, 0.3f);
-    
-    // Кэшированные компоненты
-    private readonly Dictionary<Vector2Int, CellView> _cells = new();
+
+    [Header("Visual Elements")]
+    [SerializeField] private Transform _gridContainer;
+    [SerializeField] private Canvas _floatingUICanvas;
+
+    private readonly Dictionary<Vector2Int, GridCellView> _cells = new();
     private readonly Queue<RewardPopup> _rewardPopupPool = new();
     private readonly Queue<FloatingMessage> _messagePool = new();
-    
-    // Состояние
+    private readonly List<Tween> _activeTweens = new();
+
     private Vector2Int _gridSize;
-    private PlantPreview _currentPlantPreview;
-    
+    private Vector3 _boundsMin;
+    private Vector3 _boundsMax;
+    private Vector3 _boundsCenter;
+
     private void Awake()
     {
         InitializePools();
     }
-    
-    /// <summary>
-    /// Инициализирует пулы объектов для оптимизации
-    /// </summary>
-    private void InitializePools()
+
+    private void OnDestroy()
     {
-        // Создаем начальный пул всплывающих сообщений
-        for (int i = 0; i < 5; i++)
-        {
-            CreateRewardPopup();
-            CreateFloatingMessage();
-        }
+        KillAllTweens();
+        ClearGrid();
+        DOTween.Kill(transform);
     }
-    
+
+    /// <summary>
+    /// Безопасно убивает все активные твины
+    /// </summary>
+    private void KillAllTweens()
+    {
+        // Отменяем все активные твины
+        for (int i = _activeTweens.Count - 1; i >= 0; i--)
+        {
+            if (_activeTweens[i] != null && _activeTweens[i].IsActive())
+            {
+                _activeTweens[i].Kill();
+            }
+        }
+        _activeTweens.Clear();
+    }
+
     /// <summary>
     /// Инициализирует визуальную сетку
     /// </summary>
     public void InitializeGrid(Vector2Int size)
     {
         _gridSize = size;
-        
-        CreateGridBackground();
+        if (_gridContainer == null) _gridContainer = transform;
+
+        RecalculateBounds();
+        _gridContainer.position = -_boundsCenter;
         SetupCamera();
     }
-    
+
     /// <summary>
     /// Создает визуальную клетку в указанной позиции
     /// </summary>
-    public CellView CreateCellView(Vector2Int position)
+    public GridCellView CreateCellView(Vector2Int position)
     {
         if (_cells.ContainsKey(position))
         {
-            Debug.LogWarning($"Cell at position {position} already exists");
-            return _cells[position];
+            var existingCell = _cells[position];
+            if (existingCell != null && existingCell.gameObject != null)
+            {
+                Debug.LogWarning($"Cell at position {position} already exists");
+                return existingCell;
+            }
+            else
+            {
+                // Удаляем запись о null-объекте
+                _cells.Remove(position);
+            }
         }
-        
-        CellView cellView = Instantiate(_cellPrefab, _gridContainer);
-        var worldPos = GridToWorldPosition(position);
-        cellView.transform.position = worldPos;
-        
-        cellView.Initialize(position, _cellSize);
+
+        if (_cellPrefab == null)
+        {
+            Debug.LogError("Cell prefab is not assigned!");
+            return null;
+        }
+
+        GridCellView cellView = Instantiate(_cellPrefab, _gridContainer);
+        if (cellView == null)
+        {
+            Debug.LogError("Failed to instantiate cell view!");
+            return null;
+        }
+
+        var localPos = GridToWorldPosition(position);
+
+        float z = (_gameSettings != null && _gameSettings.DisplayType == GridDisplayType.Isometric)
+            ? -(position.x + position.y) * 0.001f
+            : -position.y * 0.001f;
+
+        cellView.transform.localPosition = new Vector3(localPos.x, localPos.y, z);
         _cells[position] = cellView;
-        
+
         return cellView;
     }
-    
+
     /// <summary>
     /// Преобразует координаты сетки в мировые координаты
     /// </summary>
     public Vector3 GridToWorldPosition(Vector2Int gridPos)
     {
-        float totalCellSize = _cellSize + _cellSpacing;
+        return _gameSettings == null || _gameSettings.DisplayType == GridDisplayType.Orthogonal
+            ? GridToWorldPositionOrthogonal(gridPos)
+            : GridToWorldPositionIsometric(gridPos);
+    }
+
+    /// <summary>
+    /// Показывает сообщение пользователю
+    /// </summary>
+    public void ShowMessage(string message, MessageType type)
+    {
+        var floatingMessage = GetFloatingMessage();
+        if (floatingMessage == null) return;
+        floatingMessage.Show(message, type);
+    }
+
+    /// <summary>
+    /// Показывает всплывающее окно с наградой
+    /// </summary>
+    public void ShowRewardPopup(Vector3 worldPosition, int coins, int petals)
+    {
+        var popup = GetRewardPopup();
+        if (popup == null) return;
+        popup.Show(worldPosition, coins, petals);
+    }
+
+    /// <summary>
+    /// Анимация появления сетки при старте
+    /// </summary>
+    public void AnimateGridAppearance()
+    {
+        // Очищаем предыдущие твины перед созданием новых
+        KillAllTweens();
+
+        foreach (var kvp in _cells)
+        {
+            var cell = kvp.Value;
+            var position = kvp.Key;
+
+            // Дополнительные проверки на валидность объекта
+            if (cell == null || cell.gameObject == null) continue;
+
+            // Убиваем все твины для данного объекта перед созданием новых
+            DOTween.Kill(cell.transform);
+            var spriteRenderer = cell.GetComponent<SpriteRenderer>();
+            if (spriteRenderer != null)
+            {
+                DOTween.Kill(spriteRenderer);
+            }
+
+            // Начальное состояние
+            cell.transform.localScale = Vector3.zero;
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = new Color(1, 1, 1, 0);
+            }
+
+            // Задержка основана на расстоянии от центра
+            float delay = (position.x + position.y) * 0.05f;
+
+            // Анимация появления
+            var sequence = DOTween.Sequence();
+            sequence.AppendInterval(delay);
+
+            var scaleTween = cell.transform.DOScale(Vector3.one, 0.3f)
+                .SetEase(Ease.OutBack)
+                .SetTarget(cell.transform);
+            sequence.Append(scaleTween);
+
+            if (spriteRenderer != null)
+            {
+                var fadeTween = spriteRenderer.DOFade(1f, 0.3f)
+                    .SetTarget(spriteRenderer);
+                sequence.Join(fadeTween);
+            }
+
+            // Устанавливаем target для sequence и добавляем безопасные колбэки
+            sequence.SetTarget(cell.transform);
+            
+            // Добавляем последовательность в список активных твинов
+            _activeTweens.Add(sequence);
+
+            // Безопасный колбэк с проверкой валидности
+            sequence.OnComplete(() =>
+            {
+                if (sequence != null)
+                {
+                    _activeTweens.Remove(sequence);
+                }
+            });
+
+            // Дополнительная безопасность - удаляем из списка при убийстве
+            sequence.OnKill(() =>
+            {
+                if (sequence != null)
+                {
+                    _activeTweens.Remove(sequence);
+                }
+            });
+        }
+    }
+
+    /// <summary>
+    /// Очищает сетку
+    /// </summary>
+    public void ClearGrid()
+    {
+        // Сначала убиваем все твины
+        KillAllTweens();
+
+        // Отменяем все твины связанные с клетками перед их уничтожением
+        foreach (var cell in _cells.Values)
+        {
+            if (cell != null && cell.gameObject != null)
+            {
+                // Убиваем все твины для данного объекта
+                DOTween.Kill(cell.transform);
+                DOTween.Kill(cell.gameObject);
+                
+                if (cell.TryGetComponent<SpriteRenderer>(out var spriteRenderer))
+                {
+                    DOTween.Kill(spriteRenderer);
+                }
+                
+                // Уничтожаем объект
+                if (Application.isPlaying)
+                {
+                    Destroy(cell.gameObject);
+                }
+                else
+                {
+                    DestroyImmediate(cell.gameObject);
+                }
+            }
+        }
+
+        _cells.Clear();
+    }
+
+    /// <summary>
+    /// Инициализирует пулы объектов для оптимизации
+    /// </summary>
+    private void InitializePools()
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            CreateRewardPopup();
+            CreateFloatingMessage();
+        }
+    }
+
+    // Вспомогательный метод для пересчета границ
+    private Vector3 GridToWorldPositionForBounds(Vector2Int gridPos)
+    {
+        return _gameSettings == null || _gameSettings.DisplayType == GridDisplayType.Orthogonal
+            ? GridToWorldPositionOrthogonal(gridPos)
+            : GridToWorldPositionIsometric(gridPos);
+    }
+
+    /// <summary>
+    /// Преобразует координаты сетки в мировые координаты для ортогонального отображения
+    /// </summary>
+    private Vector3 GridToWorldPositionOrthogonal(Vector2Int gridPos)
+    {
         return new Vector3(
-            gridPos.x * totalCellSize + _gridOffset.x,
-            gridPos.y * totalCellSize + _gridOffset.y,
+            gridPos.x * _gameSettings.OrthographicTileSize.x,
+            gridPos.y * _gameSettings.OrthographicTileSize.y,
             0
         );
     }
-    
+
     /// <summary>
-    /// Преобразует мировые координаты в координаты сетки
+    /// Преобразует координаты сетки в мировые координаты для изометрического отображения
     /// </summary>
-    public Vector2Int WorldToGridPosition(Vector3 worldPos)
+    private Vector3 GridToWorldPositionIsometric(Vector2Int gridPos)
     {
-        float totalCellSize = _cellSize + _cellSpacing;
-        int x = Mathf.RoundToInt((worldPos.x - _gridOffset.x) / totalCellSize);
-        int y = Mathf.RoundToInt((worldPos.y - _gridOffset.y) / totalCellSize);
-        return new Vector2Int(x, y);
+        float xFactor = _gameSettings.IsometricTileSize.x;
+        float yFactor = _gameSettings.IsometricTileSize.y;
+
+        float isoX = (gridPos.x - gridPos.y) * xFactor;
+        float isoY = (gridPos.x + gridPos.y) * yFactor;
+
+        return new Vector3(isoX, isoY, 0);
     }
-    
+
     /// <summary>
-    /// Создает фоновую подложку для сетки
+    /// Пересчитывает границы сетки (локальные координаты до смещения контейнера)
     /// </summary>
-    private void CreateGridBackground()
+    private void RecalculateBounds()
     {
-        _gridBackground.transform.localPosition = Vector3.zero;
-        _gridBackground.sortingOrder = -10;
-        
-        // Создаем простой белый спрайт для фона
-        var texture = new Texture2D(1, 1);
-        texture.SetPixel(0, 0, Color.white);
-        texture.Apply();
-        
-        var sprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), Vector2.one * 0.5f, 1);
-        _gridBackground.sprite = sprite;
-        _gridBackground.color = new Color(0.9f, 0.85f, 0.75f, 0.3f);
-        
-        // Масштабируем под размер сетки
-        float totalWidth = _gridSize.x * (_cellSize + _cellSpacing);
-        float totalHeight = _gridSize.y * (_cellSize + _cellSpacing);
-        _gridBackground.transform.localScale = new Vector3(totalWidth, totalHeight, 1);
+        if (_gridSize.x <= 0 || _gridSize.y <= 0)
+        {
+            _boundsMin = _boundsMax = _boundsCenter = Vector3.zero;
+            return;
+        }
+
+        Vector3 topLeft = GridToWorldPositionForBounds(new Vector2Int(0, _gridSize.y - 1));
+        Vector3 bottomRight = GridToWorldPositionForBounds(new Vector2Int(_gridSize.x - 1, 0));
+        Vector3 topRight = GridToWorldPositionForBounds(new Vector2Int(_gridSize.x - 1, _gridSize.y - 1));
+        Vector3 bottomLeft = GridToWorldPositionForBounds(new Vector2Int(0, 0));
+
+        float minX = Mathf.Min(Mathf.Min(topLeft.x, topRight.x), Mathf.Min(bottomLeft.x, bottomRight.x));
+        float maxX = Mathf.Max(Mathf.Max(topLeft.x, topRight.x), Mathf.Max(bottomLeft.x, bottomRight.x));
+        float minY = Mathf.Min(Mathf.Min(topLeft.y, topRight.y), Mathf.Min(bottomLeft.y, bottomRight.y));
+        float maxY = Mathf.Max(Mathf.Max(topLeft.y, topRight.y), Mathf.Max(bottomLeft.y, bottomRight.y));
+
+        _boundsMin = new Vector3(minX, minY, 0f);
+        _boundsMax = new Vector3(maxX, maxY, 0f);
+        _boundsCenter = (_boundsMin + _boundsMax) * 0.5f;
     }
-    
+
     /// <summary>
     /// Настраивает камеру для оптимального вида сетки
     /// </summary>
@@ -148,234 +337,138 @@ public class GridView : MonoBehaviour
     {
         var mainCamera = Camera.main;
         if (mainCamera == null) return;
-        
-        // Центрируем камеру на сетке
-        float totalWidth = _gridSize.x * (_cellSize + _cellSpacing);
-        float totalHeight = _gridSize.y * (_cellSize + _cellSpacing);
-        
-        var centerX = _gridOffset.x + totalWidth / 2 - _cellSize / 2;
-        var centerY = _gridOffset.y + totalHeight / 2 - _cellSize / 2;
-        
-        mainCamera.transform.position = new Vector3(centerX, centerY, -10);
-        
-        // Настраиваем размер ортографической камеры
+        if (_gridSize.x <= 0 || _gridSize.y <= 0) return;
+
+        // Пересчитываем границы на случай изменения настроек
+        RecalculateBounds();
+
+        // Контейнер уже центрирован в (0,0), ставим камеру в центр
+        mainCamera.transform.position = new Vector3(0f, 0f, -10f);
+
         if (mainCamera.orthographic)
         {
-            float requiredSize = Mathf.Max(totalWidth, totalHeight) * 0.6f;
-            mainCamera.orthographicSize = requiredSize;
+            float width = _boundsMax.x - _boundsMin.x;
+            float height = _boundsMax.y - _boundsMin.y;
+
+            // Отступ примерно на размер тайла для приятной рамки
+            float tileX = (_gameSettings != null && _gameSettings.DisplayType == GridDisplayType.Isometric)
+                ? _gameSettings.IsometricTileSize.x
+                : _gameSettings.OrthographicTileSize.x;
+            float tileY = (_gameSettings != null && _gameSettings.DisplayType == GridDisplayType.Isometric)
+                ? _gameSettings.IsometricTileSize.y
+                : _gameSettings.OrthographicTileSize.y;
+            float margin = Mathf.Max(tileX, tileY) * 0.75f;
+
+            float halfW = width * 0.5f + margin;
+            float halfH = height * 0.5f + margin;
+
+            float sizeByHeight = halfH;
+            float sizeByWidth = halfW / Mathf.Max(mainCamera.aspect, 0.0001f);
+            mainCamera.orthographicSize = Mathf.Max(sizeByHeight, sizeByWidth);
         }
     }
-    
-    /// <summary>
-    /// Показывает сообщение пользователю
-    /// </summary>
-    public void ShowMessage(string message, MessageType type)
-    {
-        var floatingMessage = GetFloatingMessage();
-        floatingMessage.Show(message, type, Camera.main.transform.position + Vector3.up * 2);
-    }
-    
-    /// <summary>
-    /// Показывает всплывающее окно с наградой
-    /// </summary>
-    public void ShowRewardPopup(Vector3 worldPosition, int coins, int petals)
-    {
-        var popup = GetRewardPopup();
-        popup.Show(worldPosition, coins, petals);
-    }
-    
-    /// <summary>
-    /// Корутина для следования превью за курсором
-    /// </summary>
-    private System.Collections.IEnumerator FollowCursor()
-    {
-        while (_currentPlantPreview != null && _currentPlantPreview.gameObject.activeSelf)
-        {
-            var mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            mousePos.z = 0;
-            
-            // Привязываем к сетке
-            var gridPos = WorldToGridPosition(mousePos);
-            if (IsValidGridPosition(gridPos))
-            {
-                var snappedPos = GridToWorldPosition(gridPos);
-                _currentPlantPreview.transform.position = snappedPos;
-                
-                // Подсвечиваем клетку под курсором
-                HighlightCell(gridPos);
-            }
-            
-            yield return null;
-        }
-    }
-    
-    /// <summary>
-    /// Подсвечивает клетку
-    /// </summary>
-    private void HighlightCell(Vector2Int position)
-    {
-        if (_cells.TryGetValue(position, out var cell))
-        {
-            // Убираем предыдущую подсветку
-            foreach (var c in _cells.Values)
-            {
-                if (c != cell)
-                {
-                    c.SetHighlight(false);
-                }
-            }
-            
-            cell.SetHighlight(true);
-        }
-    }
-    
-    /// <summary>
-    /// Проверяет, является ли позиция валидной для сетки
-    /// </summary>
-    private bool IsValidGridPosition(Vector2Int position)
-    {
-        return position.x >= 0 && position.x < _gridSize.x &&
-               position.y >= 0 && position.y < _gridSize.y;
-    }
-    
-    /// <summary>
-    /// Получает цвет для типа почвы
-    /// </summary>
-    public Color GetSoilColor(SoilType soilType)
-    {
-        return soilType switch
-        {
-            SoilType.Fertile => _fertileColor,
-            SoilType.Rocky => _rockyColor,
-            SoilType.Unsuitable => _unsuitableColor,
-            _ => Color.white
-        };
-    }
-    
-    /// <summary>
-    /// Воспроизводит эффект посадки растения
-    /// </summary>
-    public void PlayPlantEffect(Vector3 position)
-    {
-        if (_plantEffectPrefab != null)
-        {
-            var parent = (_effectsContainer != null && _effectsContainer.gameObject.scene.IsValid()) ? _effectsContainer : transform;
-            var effect = Instantiate(_plantEffectPrefab, position, Quaternion.identity, parent);
-            Destroy(effect.gameObject, 2f);
-        }
-    }
-    
-    /// <summary>
-    /// Воспроизводит эффект сбора урожая
-    /// </summary>
-    public void PlayHarvestEffect(Vector3 position)
-    {
-        if (_harvestEffectPrefab != null)
-        {
-            var parent = (_effectsContainer != null && _effectsContainer.gameObject.scene.IsValid()) ? _effectsContainer : transform;
-            var effect = Instantiate(_harvestEffectPrefab, position, Quaternion.identity, parent);
-            Destroy(effect.gameObject, 2f);
-        }
-    }
-    
+
     /// <summary>
     /// Получает всплывающее окно награды из пула
     /// </summary>
     private RewardPopup GetRewardPopup()
     {
+        // Очищаем пул от уничтоженных объектов
+        while (_rewardPopupPool.Count > 0)
+        {
+            var popup = _rewardPopupPool.Peek();
+            if (popup == null || popup.gameObject == null)
+            {
+                _rewardPopupPool.Dequeue();
+            }
+            else
+            {
+                return _rewardPopupPool.Dequeue();
+            }
+        }
+
+        CreateRewardPopup();
         if (_rewardPopupPool.Count == 0)
         {
-            CreateRewardPopup();
+            Debug.LogWarning("RewardPopup prefab is not assigned or failed to create");
+            return null;
         }
-        
+
         return _rewardPopupPool.Dequeue();
     }
-    
+
     /// <summary>
     /// Создает новое всплывающее окно награды
     /// </summary>
     private void CreateRewardPopup()
     {
-        return;
+        if (_rewardPopupPrefab == null || _floatingUICanvas == null) return;
 
-        var uiParent = (_floatingUICanvas != null && _floatingUICanvas.gameObject.scene.IsValid()) ? _floatingUICanvas.transform : transform;
+        var uiParent = _floatingUICanvas.transform;
         var popup = Instantiate(_rewardPopupPrefab, uiParent);
-        popup.OnComplete += () => _rewardPopupPool.Enqueue(popup);
-        popup.gameObject.SetActive(false);
-        _rewardPopupPool.Enqueue(popup);
+        
+        if (popup != null)
+        {
+            popup.OnComplete += () => {
+                if (popup != null && popup.gameObject != null)
+                {
+                    _rewardPopupPool.Enqueue(popup);
+                }
+            };
+            popup.gameObject.SetActive(false);
+            _rewardPopupPool.Enqueue(popup);
+        }
     }
-    
+
     /// <summary>
     /// Получает всплывающее сообщение из пула
     /// </summary>
     private FloatingMessage GetFloatingMessage()
     {
+        // Очищаем пул от уничтоженных объектов
+        while (_messagePool.Count > 0)
+        {
+            var message = _messagePool.Peek();
+            if (message == null || message.gameObject == null)
+            {
+                _messagePool.Dequeue();
+            }
+            else
+            {
+                return _messagePool.Dequeue();
+            }
+        }
+
+        CreateFloatingMessage();
         if (_messagePool.Count == 0)
         {
-            CreateFloatingMessage();
+            Debug.LogWarning("FloatingMessage prefab is not assigned or failed to create");
+            return null;
         }
-        
+
         return _messagePool.Dequeue();
     }
-    
+
     /// <summary>
     /// Создает новое всплывающее сообщение
     /// </summary>
     private void CreateFloatingMessage()
     {
-        return;
+        if (_floatingMessagePrefab == null || _floatingUICanvas == null) return;
 
-        var uiParent = (_floatingUICanvas != null && _floatingUICanvas.gameObject.scene.IsValid()) ? _floatingUICanvas.transform : transform;
+        var uiParent = _floatingUICanvas.transform;
         var message = Instantiate(_floatingMessagePrefab, uiParent);
-        message.OnComplete += () => _messagePool.Enqueue(message);
-        message.gameObject.SetActive(false);
-        _messagePool.Enqueue(message);
-    }
-    
-    /// <summary>
-    /// Анимация появления сетки при старте
-    /// </summary>
-    public void AnimateGridAppearance()
-    {
-        foreach (var kvp in _cells)
-        {
-            var cell = kvp.Value;
-            var position = kvp.Key;
-            
-            // Начальное состояние
-            cell.transform.localScale = Vector3.zero;
-            cell.GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 0);
-            
-            // Задержка основана на расстоянии от центра
-            float delay = (position.x + position.y) * 0.05f;
-            
-            // Анимация появления
-            var sequence = DOTween.Sequence();
-            sequence.AppendInterval(delay);
-            sequence.Append(cell.transform.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack));
-            sequence.Join(cell.GetComponent<SpriteRenderer>().DOFade(1f, 0.3f));
-        }
-    }
-    
-    /// <summary>
-    /// Очищает сетку
-    /// </summary>
-    public void ClearGrid()
-    {
-        foreach (var cell in _cells.Values)
-        {
-            if (cell != null)
-            {
-                Destroy(cell.gameObject);
-            }
-        }
         
-        _cells.Clear();
-    }
-    
-    private void OnDestroy()
-    {
-        ClearGrid();
-        DOTween.Kill(transform);
+        if (message != null)
+        {
+            message.OnComplete += () => {
+                if (message != null && message.gameObject != null)
+                {
+                    _messagePool.Enqueue(message);
+                }
+            };
+            message.gameObject.SetActive(false);
+            _messagePool.Enqueue(message);
+        }
     }
 }

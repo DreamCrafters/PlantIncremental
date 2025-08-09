@@ -5,7 +5,6 @@ using UnityEngine;
 public interface IGridService
 {
     IReadOnlyReactiveProperty<GridCell[,]> Grid { get; }
-    IObservable<GridCell> OnCellClicked { get; }
     IObservable<PlantHarvestedEvent> OnPlantHarvested { get; }
     bool TryPlantAt(Vector2Int position);
     bool TryHarvestAt(Vector2Int position);

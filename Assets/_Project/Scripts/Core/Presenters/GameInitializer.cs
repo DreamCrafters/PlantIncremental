@@ -58,6 +58,16 @@ public class GameInitializer : IInitializable, IDisposable
         Debug.Log("=== Game Initialized Successfully ===");
     }
     
+    public void Dispose()
+    {
+        // Сохраняем перед выходом
+        SaveGame();
+        
+        _disposables?.Dispose();
+        
+        Debug.Log("Game Initializer disposed");
+    }
+    
     /// <summary>
     /// Настраивает DOTween для оптимальной производительности
     /// </summary>
@@ -72,13 +82,17 @@ public class GameInitializer : IInitializable, IDisposable
         // Автоматически убиваем твины при отключении компонентов
         DOTween.defaultAutoKill = true;
         
-        // Устанавливаем логирование для отладки (можно отключить в продакшене)
+        // Автоматически воспроизводим твины
+        DOTween.defaultAutoPlay = AutoPlay.All;
+        
+        // Используем safe mode для предотвращения ошибок, но с минимальным логированием
         DOTween.logBehaviour = LogBehaviour.ErrorsOnly;
         
-        // Инициализируем DOTween
-        DOTween.Init(recycleAllByDefault: true, useSafeMode: true, logBehaviour: LogBehaviour.ErrorsOnly);
-        
-        Debug.Log("DOTween initialized with optimized settings");
+        // Инициализируем DOTween с улучшенными настройками безопасности
+        DOTween.Init(recycleAllByDefault: true, useSafeMode: true, logBehaviour: LogBehaviour.ErrorsOnly)
+            .SetCapacity(500, 50);
+
+        Debug.Log("DOTween initialized with enhanced safety settings");
     }
 
     /// <summary>
@@ -170,11 +184,6 @@ public class GameInitializer : IInitializable, IDisposable
             .Subscribe(evt => OnPlantHarvested(evt))
             .AddTo(_disposables);
         
-        // Подписка на полный рост растений
-        _growthService.OnPlantGrown
-            .Subscribe(plant => OnPlantFullyGrown(plant))
-            .AddTo(_disposables);
-        
         // Подписка на изменение лепестков
         _economyService.OnPetalChanged
             .Subscribe(type => OnPetalsChanged(type))
@@ -186,24 +195,11 @@ public class GameInitializer : IInitializable, IDisposable
     /// </summary>
     private void OnPlantHarvested(PlantHarvestedEvent evt)
     {
-        Debug.Log($"Plant harvested at {evt.Position}, reward: {evt.Reward} coins");
-        
         // Проверяем достижения
         CheckHarvestAchievements(evt);
         
         // Обновляем статистику
         UpdateHarvestStatistics(evt);
-    }
-    
-    /// <summary>
-    /// Обработка полного роста растения
-    /// </summary>
-    private void OnPlantFullyGrown(IPlantEntity plant)
-    {
-        Debug.Log($"Plant fully grown: {plant.Data.DisplayName}");
-        
-        // Можно добавить уведомление игроку
-        ShowGrowthNotification(plant);
     }
     
     /// <summary>
@@ -236,18 +232,6 @@ public class GameInitializer : IInitializable, IDisposable
         // - Общее количество собранных растений
         // - Общий доход
         // - Самое ценное растение
-    }
-    
-    /// <summary>
-    /// Показывает уведомление о готовности растения
-    /// </summary>
-    private void ShowGrowthNotification(IPlantEntity plant)
-    {
-        if (_gridView != null)
-        {
-            var message = $"{plant.Data.DisplayName} готово к сбору!";
-            _gridView.ShowMessage(message, MessageType.Success);
-        }
     }
     
     /// <summary>
@@ -309,15 +293,5 @@ public class GameInitializer : IInitializable, IDisposable
         // saveData.Timestamp = DateTime.Now;
         
         return saveData;
-    }
-    
-    public void Dispose()
-    {
-        // Сохраняем перед выходом
-        SaveGame();
-        
-        _disposables?.Dispose();
-        
-        Debug.Log("Game Initializer disposed");
     }
 }

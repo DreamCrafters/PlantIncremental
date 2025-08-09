@@ -17,7 +17,7 @@ public class GridPresenter : IInitializable, IDisposable
     private readonly GameSettings _settings;
 
     private readonly CompositeDisposable _disposables = new();
-    private readonly Dictionary<Vector2Int, CellView> _cellViews = new();
+    private readonly Dictionary<Vector2Int, GridCellView> _cellViews = new();
 
     [Inject]
     public GridPresenter(
@@ -38,6 +38,11 @@ public class GridPresenter : IInitializable, IDisposable
     {
         InitializeGrid();
         SubscribeToEvents();
+    }
+
+    public void Dispose()
+    {
+        _disposables?.Dispose();
     }
 
     /// <summary>
@@ -64,6 +69,8 @@ public class GridPresenter : IInitializable, IDisposable
                 SubscribeToCellClick(cellView, position);
             }
         }
+
+        _gridView.AnimateGridAppearance();
     }
 
     /// <summary>
@@ -76,26 +83,16 @@ public class GridPresenter : IInitializable, IDisposable
             .Subscribe(grid => OnGridChanged(grid))
             .AddTo(_disposables);
 
-        // Подписка на клики по клеткам
-        _gridService.OnCellClicked
-            .Subscribe(cell => OnCellClicked(cell))
-            .AddTo(_disposables);
-
         // Подписка на сбор урожая
         _gridService.OnPlantHarvested
             .Subscribe(evt => OnPlantHarvested(evt))
-            .AddTo(_disposables);
-
-        // Подписка на полный рост растений
-        _growthService.OnPlantGrown
-            .Subscribe(plant => OnPlantGrown(plant))
             .AddTo(_disposables);
     }
 
     /// <summary>
     /// Подписывается на клики по конкретной клетке
     /// </summary>
-    private void SubscribeToCellClick(CellView cellView, Vector2Int position)
+    private void SubscribeToCellClick(GridCellView cellView, Vector2Int position)
     {
         cellView.OnClick
             .Subscribe(_ => HandleCellClick(position))
@@ -177,33 +174,25 @@ public class GridPresenter : IInitializable, IDisposable
                 }
             }
         }
-
-        _gridView.AnimateGridAppearance();
     }
 
     /// <summary>
     /// Обновляет визуал конкретной клетки
     /// </summary>
-    private void UpdateCellVisual(CellView cellView, GridCell cell)
+    private void UpdateCellVisual(GridCellView cellView, GridCell cell)
     {
         cellView.UpdateVisual(cell);
         cellView.ShowPlant(cell.IsEmpty == false);
-    }
-
-    /// <summary>
-    /// Обработка клика по клетке
-    /// </summary>
-    private void OnCellClicked(GridCell cell)
-    {
-        // Подсвечиваем клетку
-        if (_cellViews.TryGetValue(cell.Position, out var cellView))
+        
+        // Если в клетке есть растение, привязываем его view к клетке
+        if (cell.IsEmpty == false && cell.Plant != null)
         {
-            cellView.SetHighlight(true);
-
-            // Убираем подсветку через время
-            Observable.Timer(TimeSpan.FromSeconds(0.5f))
-                .Subscribe(_ => cellView.SetHighlight(false))
-                .AddTo(_disposables);
+            cellView.SetPlantView(cell.Plant.View);
+        }
+        else
+        {
+            // Если клетка пустая, очищаем растение
+            cellView.SetPlantView(null);
         }
     }
 
@@ -231,59 +220,6 @@ public class GridPresenter : IInitializable, IDisposable
 
         // Останавливаем рост (уже собрано)
         _growthService.StopGrowing(evt.Plant);
-    }
-
-    /// <summary>
-    /// Обработка полного роста растения
-    /// </summary>
-    private void OnPlantGrown(IPlantEntity plant)
-    {
-        // Находим клетку с этим растением
-        var cell = FindCellWithPlant(plant);
-        if (cell != null && _cellViews.TryGetValue(cell.Position, out var cellView))
-        {
-            // Показываем индикатор готовности к сбору
-            cellView.ShowHarvestReady(true);
-        }
-    }
-
-    /// <summary>
-    /// Находит клетку с указанным растением
-    /// </summary>
-    private GridCell FindCellWithPlant(IPlantEntity plant)
-    {
-        var grid = _gridService.Grid.Value;
-        if (grid == null) return null;
-
-        for (int x = 0; x < grid.GetLength(0); x++)
-        {
-            for (int y = 0; y < grid.GetLength(1); y++)
-            {
-                if (grid[x, y].Plant == plant)
-                {
-                    return grid[x, y];
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Получает стоимость растения
-    /// </summary>
-    private int GetPlantCost(PlantData plantData)
-    {
-        // Базовая стоимость зависит от редкости
-        return plantData.Rarity switch
-        {
-            PlantRarity.Common => 10,
-            PlantRarity.Uncommon => 25,
-            PlantRarity.Rare => 50,
-            PlantRarity.Epic => 100,
-            PlantRarity.Legendary => 500,
-            _ => 10
-        };
     }
 
     /// <summary>
@@ -334,10 +270,5 @@ public class GridPresenter : IInitializable, IDisposable
         {
             cellView.PlayHarvestEffect();
         }
-    }
-
-    public void Dispose()
-    {
-        _disposables?.Dispose();
     }
 }

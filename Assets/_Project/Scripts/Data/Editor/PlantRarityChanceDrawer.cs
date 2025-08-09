@@ -41,6 +41,11 @@ public class PlantRarityChanceDrawer : PropertyDrawer
         EditorGUI.EndProperty();
     }
 
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        return EditorGUIUtility.singleLineHeight;
+    }
+
     private float GetNormalizedValue(SerializedProperty currentProperty, float rawValue)
     {
         // Находим родительский массив
@@ -67,10 +72,5 @@ public class PlantRarityChanceDrawer : PropertyDrawer
 
         // Возвращаем нормализованное значение
         return totalChance > 0f ? rawValue / totalChance : 0f;
-    }
-
-    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
-    {
-        return EditorGUIUtility.singleLineHeight;
     }
 }
