@@ -59,11 +59,6 @@ public class PetalsCollection
         return _petals.Select(kvp => new PetalData(kvp.Key, kvp.Value));
     }
 
-    public IEnumerable<PetalData> GetNonZeroPetals()
-    {
-        return _petals.Where(kvp => kvp.Value > 0).Select(kvp => new PetalData(kvp.Key, kvp.Value));
-    }
-
     public void Clear()
     {
         var typesToClear = _petals.Keys.ToList();

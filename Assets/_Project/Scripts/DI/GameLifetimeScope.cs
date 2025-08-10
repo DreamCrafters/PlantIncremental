@@ -9,6 +9,7 @@ public class GameLifetimeScope : LifetimeScope
     [Header("Views")]
     [SerializeField] private CoinsView _coinsView;
     [SerializeField] private GridView _gridView;
+    [SerializeField] private PetalsView _petalsView;
 
     protected override void Configure(IContainerBuilder builder)
     {
@@ -21,10 +22,11 @@ public class GameLifetimeScope : LifetimeScope
         builder.Register<ISaveService, SaveService>(Lifetime.Singleton);
         builder.Register<IGridService, GridService>(Lifetime.Singleton);
         builder.Register<IPlantGrowthService, PlantGrowthService>(Lifetime.Singleton);
-        
+
         // Регистрация представлений
         builder.RegisterInstance(_coinsView).AsSelf();
         builder.RegisterInstance(_gridView).AsSelf();
+        builder.RegisterInstance(_petalsView).AsSelf();
 
         // Регистрация фабрик
         builder.Register<IPlantFactory, PlantFactory>(Lifetime.Singleton);
@@ -33,7 +35,7 @@ public class GameLifetimeScope : LifetimeScope
         builder.UseEntryPoints(entryPoint =>
         {
             entryPoint.Add<GameInitializer>();
-            entryPoint.Add<CoinsPresenter>();
+            entryPoint.Add<EconomyPresenter>();
             entryPoint.Add<GridPresenter>();
         });
     }

@@ -15,6 +15,6 @@ public interface IEconomyService
     bool HasPetals(PlantType type, int amount);
     int GetPetalsAmount(PlantType type);
     
-    PetalsCollectionSaveData GetPetalsSaveData();
-    void LoadPetalsData(PetalsCollectionSaveData saveData);
+    EconomySaveData GetSaveData();
+    void LoadData(EconomySaveData saveData);
 }

@@ -45,13 +45,14 @@ public class EconomyService : IEconomyService
         return _petalsCollection.GetAmount(type);
     }
 
-    public PetalsCollectionSaveData GetPetalsSaveData()
+    public EconomySaveData GetSaveData()
     {
-        return PetalsCollectionSaveData.FromCollection(_petalsCollection);
+        return EconomySaveData.Create(_coins.Value, _petalsCollection);
     }
 
-    public void LoadPetalsData(PetalsCollectionSaveData saveData)
+    public void LoadData(EconomySaveData saveData)
     {
-        saveData.ApplyToCollection(_petalsCollection);
+        saveData.Apply(_petalsCollection, out int coins);
+        _coins.Value = coins;
     }
 }

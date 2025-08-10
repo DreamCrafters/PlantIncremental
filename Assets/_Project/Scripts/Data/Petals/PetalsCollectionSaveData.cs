@@ -3,17 +3,19 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
-public class PetalsCollectionSaveData
+public class EconomySaveData
 {
+    [SerializeField] private int _coins;
     [SerializeField] private List<PetalSaveData> _petals = new();
 
-    public List<PetalSaveData> Petals => _petals;
-
-    public static PetalsCollectionSaveData FromCollection(PetalsCollection collection)
+    public static EconomySaveData Create(int coins, PetalsCollection collection)
     {
-        var saveData = new PetalsCollectionSaveData();
-        
-        foreach (var petal in collection.GetNonZeroPetals())
+        var saveData = new EconomySaveData
+        {
+            _coins = coins
+        };
+
+        foreach (var petal in collection.GetAllPetals())
         {
             saveData._petals.Add(new PetalSaveData
             {
@@ -21,12 +23,13 @@ public class PetalsCollectionSaveData
                 amount = petal.Amount
             });
         }
-        
+
         return saveData;
     }
 
-    public void ApplyToCollection(PetalsCollection collection)
+    public void Apply(PetalsCollection collection, out int coins)
     {
+        coins = _coins;
         collection.Clear();
         
         foreach (var petalData in _petals)
