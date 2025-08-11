@@ -4,13 +4,17 @@ using UnityEditor;
 [CustomEditor(typeof(GameSettings))]
 public class GameSettingsEditor : Editor
 {
+    private const string DisplayTypeFieldName = "DisplayType";
+    private const string IsometricTileSizeFieldName = "IsometricTileSize";
+    private const string OrthographicTileSizeFieldName = "OrthographicTileSize";
+
     private SerializedProperty _isometricTileSizeProperty;
     private SerializedProperty _orthographicTileSizeProperty;
 
     private void OnEnable()
     {
-        _isometricTileSizeProperty = serializedObject.FindProperty("IsometricTileSize");
-        _orthographicTileSizeProperty = serializedObject.FindProperty("OrthographicTileSize");
+        _isometricTileSizeProperty = serializedObject.FindProperty(IsometricTileSizeFieldName);
+        _orthographicTileSizeProperty = serializedObject.FindProperty(OrthographicTileSizeFieldName);
     }
 
     public override void OnInspectorGUI()
@@ -32,7 +36,7 @@ public class GameSettingsEditor : Editor
                 continue;
 
             // Специальная обработка для DisplayType
-            if (iterator.name == "DisplayType")
+            if (iterator.name == DisplayTypeFieldName)
             {
                 EditorGUILayout.PropertyField(iterator);
                 
@@ -49,7 +53,7 @@ public class GameSettingsEditor : Editor
             }
             
             // Пропускаем размеры тайлов, так как они уже отрисованы выше
-            if (iterator.name == "IsometricTileSize" || iterator.name == "OrthographicTileSize")
+            if (iterator.name == IsometricTileSizeFieldName || iterator.name == OrthographicTileSizeFieldName)
                 continue;
             
             // Для всех остальных полей - стандартная отрисовка
