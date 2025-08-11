@@ -14,20 +14,20 @@ public class FloatingMessage : MonoBehaviour
     [SerializeField] private TMP_Text _messageText;
     [SerializeField] private Image _background;
     [SerializeField] private CanvasGroup _canvasGroup;
-    
+
     [Header("Colors")]
     [SerializeField] private Color _infoColor = new(0.2f, 0.5f, 1f);
     [SerializeField] private Color _successColor = new(0.2f, 0.8f, 0.2f);
     [SerializeField] private Color _warningColor = new(1f, 0.7f, 0.2f);
     [SerializeField] private Color _errorColor = new(1f, 0.2f, 0.2f);
-    
+
     [Header("Animation")]
     [SerializeField] private float _displayDuration = 2f;
     [SerializeField] private float _fadeInDuration = 0.3f;
     [SerializeField] private float _fadeOutDuration = 0.5f;
-    
+
     public event Action OnComplete;
-    
+
     // Отслеживание твинов
     private readonly List<Tween> _activeTweens = new();
 
@@ -35,7 +35,7 @@ public class FloatingMessage : MonoBehaviour
     {
         if (_canvasGroup == null)
             _canvasGroup = GetComponent<CanvasGroup>();
-        
+
         if (_background == null)
             _background = GetComponent<Image>();
     }
@@ -73,12 +73,13 @@ public class FloatingMessage : MonoBehaviour
         if (tween != null)
         {
             _activeTweens.Add(tween);
-            
+
             // Автоматически удаляем из списка по завершении
             tween.OnComplete(() =>
             {
                 if (tween != null)
                 {
+                    OnComplete?.Invoke();
                     _activeTweens.Remove(tween);
                 }
             });
@@ -93,7 +94,7 @@ public class FloatingMessage : MonoBehaviour
             });
         }
     }
-    
+
     /// <summary>
     /// Показывает сообщение
     /// </summary>
@@ -101,11 +102,11 @@ public class FloatingMessage : MonoBehaviour
     {
         _messageText.text = message;
         _background.color = GetColorForType(type);
-        
+
         gameObject.SetActive(true);
         AnimateMessage();
     }
-    
+
     private Color GetColorForType(MessageType type)
     {
         return type switch
@@ -117,17 +118,17 @@ public class FloatingMessage : MonoBehaviour
             _ => _infoColor
         };
     }
-    
+
     private void AnimateMessage()
     {
         if (_canvasGroup == null || transform == null) return;
 
         _canvasGroup.alpha = 0;
         transform.localScale = Vector3.one * 0.8f;
-        
+
         var sequence = DOTween.Sequence();
         sequence.SetTarget(transform);
-        
+
         // Появление
         var fadeTween = _canvasGroup.DOFade(1f, _fadeInDuration).SetTarget(_canvasGroup);
         var scaleTween = transform.DOScale(1f, _fadeInDuration)
@@ -136,25 +137,16 @@ public class FloatingMessage : MonoBehaviour
 
         sequence.Append(fadeTween);
         sequence.Join(scaleTween);
-        
+
         // Ожидание
         sequence.AppendInterval(_displayDuration);
-        
+
         // Исчезновение
         var fadeOutTween = _canvasGroup.DOFade(0, _fadeOutDuration).SetTarget(_canvasGroup);
         var scaleOutTween = transform.DOScale(0.8f, _fadeOutDuration).SetTarget(transform);
 
         sequence.Append(fadeOutTween);
         sequence.Join(scaleOutTween);
-        
-        sequence.OnComplete(() =>
-        {
-            if (gameObject != null)
-            {
-                gameObject.SetActive(false);
-                OnComplete?.Invoke();
-            }
-        });
 
         AddTween(sequence);
     }

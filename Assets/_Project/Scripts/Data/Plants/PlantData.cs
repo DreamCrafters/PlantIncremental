@@ -13,14 +13,17 @@ public class PlantData : ScriptableObject
 
     private void OnValidate()
     {
-        if (GrowthStages == null || GrowthStages.Length != Enum.GetValues(typeof(PlantState)).Length)
+        var requiredLength = Enum.GetValues(typeof(PlantState)).Length;
+        if (GrowthStages == null || GrowthStages.Length != requiredLength)
         {
-            var newStages = new PlantStateInfo[Enum.GetValues(typeof(PlantState)).Length];
+            var oldStages = GrowthStages;
+            var newStages = new PlantStateInfo[requiredLength];
+            int oldLen = oldStages?.Length ?? 0;
 
             for (int i = 0; i < newStages.Length; i++)
             {
                 newStages[i].State = (PlantState)i;
-                newStages[i].Sprite = i < GrowthStages.Length ? GrowthStages[i].Sprite : null;
+                newStages[i].Sprite = i < oldLen ? oldStages[i].Sprite : null;
             }
 
             GrowthStages = newStages;

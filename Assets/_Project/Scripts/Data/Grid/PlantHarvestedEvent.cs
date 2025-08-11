@@ -8,5 +8,4 @@ public struct PlantHarvestedEvent
 {
     public IPlantEntity Plant;
     public Vector2Int Position;
-    public int Reward;
 }

@@ -4,27 +4,29 @@ using UnityEditor;
 [CustomEditor(typeof(GameSettings))]
 public class GameSettingsEditor : Editor
 {
-    private SerializedProperty gridSizeProperty;
-    private SerializedProperty displayTypeProperty;
-    private SerializedProperty isometricTileSizeProperty;
-    private SerializedProperty orthographicTileSizeProperty;
-    private SerializedProperty autoSaveIntervalProperty;
-    private SerializedProperty dayDurationProperty;
-    private SerializedProperty viewPrefabProperty;
-    private SerializedProperty availablePlantsProperty;
-    private SerializedProperty rarityChancesProperty;
+    private SerializedProperty _gridSizeProperty;
+    private SerializedProperty _displayTypeProperty;
+    private SerializedProperty _isometricTileSizeProperty;
+    private SerializedProperty _orthographicTileSizeProperty;
+    private SerializedProperty _autoSaveIntervalProperty;
+    private SerializedProperty _dayDurationProperty;
+    private SerializedProperty _viewPrefabProperty;
+    private SerializedProperty _availablePlantsProperty;
+    private SerializedProperty _rarityChancesProperty;
+    private SerializedProperty _cameraMarginProperty;
 
     private void OnEnable()
     {
-        gridSizeProperty = serializedObject.FindProperty("GridSize");
-        displayTypeProperty = serializedObject.FindProperty("DisplayType");
-        isometricTileSizeProperty = serializedObject.FindProperty("IsometricTileSize");
-        orthographicTileSizeProperty = serializedObject.FindProperty("OrthographicTileSize");
-        autoSaveIntervalProperty = serializedObject.FindProperty("AutoSaveInterval");
-        dayDurationProperty = serializedObject.FindProperty("DayDuration");
-        viewPrefabProperty = serializedObject.FindProperty("ViewPrefab");
-        availablePlantsProperty = serializedObject.FindProperty("AvailablePlants");
-        rarityChancesProperty = serializedObject.FindProperty("RarityChances");
+        _gridSizeProperty = serializedObject.FindProperty("GridSize");
+        _displayTypeProperty = serializedObject.FindProperty("DisplayType");
+        _isometricTileSizeProperty = serializedObject.FindProperty("IsometricTileSize");
+        _orthographicTileSizeProperty = serializedObject.FindProperty("OrthographicTileSize");
+        _autoSaveIntervalProperty = serializedObject.FindProperty("AutoSaveInterval");
+        _dayDurationProperty = serializedObject.FindProperty("DayDuration");
+        _viewPrefabProperty = serializedObject.FindProperty("ViewPrefab");
+        _availablePlantsProperty = serializedObject.FindProperty("AvailablePlants");
+        _rarityChancesProperty = serializedObject.FindProperty("RarityChances");
+        _cameraMarginProperty = serializedObject.FindProperty("CameraMargin");
     }
 
     public override void OnInspectorGUI()
@@ -33,23 +35,24 @@ public class GameSettingsEditor : Editor
 
         var gameSettings = (GameSettings)target;
 
-        EditorGUILayout.PropertyField(gridSizeProperty);
-        EditorGUILayout.PropertyField(displayTypeProperty);
+        EditorGUILayout.PropertyField(_gridSizeProperty);
+        EditorGUILayout.PropertyField(_displayTypeProperty);
 
         if (gameSettings.DisplayType == GridDisplayType.Isometric)
         {
-            EditorGUILayout.PropertyField(isometricTileSizeProperty);
+            EditorGUILayout.PropertyField(_isometricTileSizeProperty);
         }
         else if (gameSettings.DisplayType == GridDisplayType.Orthogonal)
         {
-            EditorGUILayout.PropertyField(orthographicTileSizeProperty);
+            EditorGUILayout.PropertyField(_orthographicTileSizeProperty);
         }
 
-        EditorGUILayout.PropertyField(autoSaveIntervalProperty);
-        EditorGUILayout.PropertyField(dayDurationProperty);
-        EditorGUILayout.PropertyField(viewPrefabProperty);
-        EditorGUILayout.PropertyField(availablePlantsProperty);
-        EditorGUILayout.PropertyField(rarityChancesProperty);
+        EditorGUILayout.PropertyField(_cameraMarginProperty);
+        EditorGUILayout.PropertyField(_autoSaveIntervalProperty);
+        EditorGUILayout.PropertyField(_dayDurationProperty);
+        EditorGUILayout.PropertyField(_viewPrefabProperty);
+        EditorGUILayout.PropertyField(_availablePlantsProperty);
+        EditorGUILayout.PropertyField(_rarityChancesProperty);
         
         // Показываем текущую сумму шансов
         float totalChance = 0f;

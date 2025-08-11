@@ -201,12 +201,12 @@ public class GridPresenter : IInitializable, IDisposable
     /// </summary>
     private void OnPlantHarvested(PlantHarvestedEvent evt)
     {
-        // Добавляем награды
-        _economyService.AddCoins(evt.Reward);
+        int coinsToAdd = 0;
 
         if (evt.Plant is PlantEntity entity)
         {
-            var harvestResult = entity.Harvest();
+            PlantHarvestResult harvestResult = entity.Harvest();
+            coinsToAdd = harvestResult.Coins;
 
             // Добавляем лепестки
             if (harvestResult.Petals.Amount > 0)
@@ -216,6 +216,12 @@ public class GridPresenter : IInitializable, IDisposable
 
             // Показываем всплывающее сообщение о награде
             ShowRewardPopup(evt.Position, harvestResult);
+        }
+
+        // Добавляем монеты один раз после получения результата
+        if (coinsToAdd > 0)
+        {
+            _economyService.AddCoins(coinsToAdd);
         }
 
         // Останавливаем рост (уже собрано)

@@ -5,10 +5,13 @@ public class GameSettings : ScriptableObject
 {
     [Header("Grid")]
     public Vector2Int GridSize = new(6, 6);
-    [Tooltip("Тип отображения сетки: ортогональная или изометрическая")]
     public GridDisplayType DisplayType = GridDisplayType.Orthogonal;
     public Vector2 OrthographicTileSize = new(0.5f, 0.25f);
     public Vector2 IsometricTileSize = new(0.5f, 0.25f);
+    
+    [Header("Camera")]
+    [Tooltip("Отступ от края карты до края камеры (в мировых единицах)")]
+    public float CameraMargin = 1.0f;
 
     [Header("Save")]
     public float AutoSaveInterval = 30f;

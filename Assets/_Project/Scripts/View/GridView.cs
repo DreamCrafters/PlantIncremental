@@ -197,7 +197,7 @@ public class GridView : MonoBehaviour
 
             // Устанавливаем target для sequence и добавляем безопасные колбэки
             sequence.SetTarget(cell.transform);
-            
+
             // Добавляем последовательность в список активных твинов
             _activeTweens.Add(sequence);
 
@@ -237,12 +237,12 @@ public class GridView : MonoBehaviour
                 // Убиваем все твины для данного объекта
                 DOTween.Kill(cell.transform);
                 DOTween.Kill(cell.gameObject);
-                
+
                 if (cell.TryGetComponent<SpriteRenderer>(out var spriteRenderer))
                 {
                     DOTween.Kill(spriteRenderer);
                 }
-                
+
                 // Уничтожаем объект
                 if (Application.isPlaying)
                 {
@@ -350,14 +350,8 @@ public class GridView : MonoBehaviour
             float width = _boundsMax.x - _boundsMin.x;
             float height = _boundsMax.y - _boundsMin.y;
 
-            // Отступ примерно на размер тайла для приятной рамки
-            float tileX = (_gameSettings != null && _gameSettings.DisplayType == GridDisplayType.Isometric)
-                ? _gameSettings.IsometricTileSize.x
-                : _gameSettings.OrthographicTileSize.x;
-            float tileY = (_gameSettings != null && _gameSettings.DisplayType == GridDisplayType.Isometric)
-                ? _gameSettings.IsometricTileSize.y
-                : _gameSettings.OrthographicTileSize.y;
-            float margin = Mathf.Max(tileX, tileY) * 0.75f;
+            // Используем настраиваемый отступ из GameSettings
+            float margin = _gameSettings != null ? _gameSettings.CameraMargin : 1.0f;
 
             float halfW = width * 0.5f + margin;
             float halfH = height * 0.5f + margin;
@@ -373,7 +367,6 @@ public class GridView : MonoBehaviour
     /// </summary>
     private RewardPopup GetRewardPopup()
     {
-        // Очищаем пул от уничтоженных объектов
         while (_rewardPopupPool.Count > 0)
         {
             var popup = _rewardPopupPool.Peek();
@@ -406,13 +399,15 @@ public class GridView : MonoBehaviour
 
         var uiParent = _floatingUICanvas.transform;
         var popup = Instantiate(_rewardPopupPrefab, uiParent);
-        
+
         if (popup != null)
         {
-            popup.OnComplete += () => {
+            popup.OnComplete += () =>
+            {
                 if (popup != null && popup.gameObject != null)
                 {
                     _rewardPopupPool.Enqueue(popup);
+                    popup.gameObject.SetActive(false);
                 }
             };
             popup.gameObject.SetActive(false);
@@ -458,13 +453,15 @@ public class GridView : MonoBehaviour
 
         var uiParent = _floatingUICanvas.transform;
         var message = Instantiate(_floatingMessagePrefab, uiParent);
-        
+
         if (message != null)
         {
-            message.OnComplete += () => {
+            message.OnComplete += () =>
+            {
                 if (message != null && message.gameObject != null)
                 {
                     _messagePool.Enqueue(message);
+                    message.gameObject.SetActive(false);
                 }
             };
             message.gameObject.SetActive(false);

@@ -21,10 +21,13 @@ public class EconomyPresenter : IInitializable, IDisposable
     public void Initialize()
     {
         _economy.Coins
+            .DistinctUntilChanged()
+            .ObserveOnMainThread()
             .Subscribe(coins => _view.UpdateCoins(coins))
             .AddTo(_disposables);
 
         _economy.OnPetalChanged
+            .ObserveOnMainThread()
             .Subscribe(petalType => _petalsView.UpdatePetals(petalType, _economy.GetPetalsAmount(petalType)))
             .AddTo(_disposables);
 

@@ -59,8 +59,9 @@ public class PlantEntity : IPlantEntity, IDisposable
 
         _growthSpeedModifier = growthModifier;
 
-        // Подписываемся на каждую секунду для обновления роста
+        // Подписываемся на каждую секунду для обновления роста (на главном потоке)
         _timeService.EverySecond
+            .ObserveOnMainThread()
             .TakeWhile(_ => _state.Value != PlantState.FullyGrown && _state.Value != PlantState.Withered)
             .Subscribe(_ => UpdateGrowth())
             .AddTo(_disposables);
@@ -127,7 +128,7 @@ public class PlantEntity : IPlantEntity, IDisposable
         if (_growthSpeedModifier <= 0f) return;
 
         // Увеличиваем прогресс роста
-        var growthIncrement = (1f / Data.GrowthTime) * _growthSpeedModifier;
+        var growthIncrement = 1f / Data.GrowthTime * _growthSpeedModifier;
         _currentGrowthTime += growthIncrement;
         _growthProgress.Value = Mathf.Clamp01(_currentGrowthTime);
 
@@ -138,6 +139,14 @@ public class PlantEntity : IPlantEntity, IDisposable
     private void UpdateStateByProgress()
     {
         var progress = _growthProgress.Value;
+        // Быстрый путь: если уже полностью выросло
+        if (progress >= 1f)
+        {
+            if (_state.Value != PlantState.FullyGrown)
+                _state.Value = PlantState.FullyGrown;
+            return;
+        }
+
         var newState = progress switch
         {
             < 0.25f => PlantState.Seed,
@@ -221,8 +230,9 @@ public class PlantEntity : IPlantEntity, IDisposable
         if (_isWithering) return;
         _isWithering = true;
 
-        // Проверяем шанс увядания каждые 10 секунд
+        // Проверяем шанс увядания каждые 10 секунд (на главном потоке)
         Observable.Interval(TimeSpan.FromSeconds(10))
+            .ObserveOnMainThread()
             .TakeWhile(_ => _state.Value == PlantState.FullyGrown)
             .Subscribe(_ => CheckWither())
             .AddTo(_disposables);

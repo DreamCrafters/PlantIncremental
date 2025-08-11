@@ -44,6 +44,7 @@ public class GridService : IGridService, IDisposable
 
         // Создаем растение без указания позиции - позиция будет установлена в клетке
         var plantData = GetRandomPlantData();
+        if (plantData == null || _settings.ViewPrefab == null) return false;
         var plant = _plantFactory.CreatePlant(plantData, Vector2.zero);
 
         if (cell.TryPlant(plant))
@@ -72,7 +73,6 @@ public class GridService : IGridService, IDisposable
             {
                 Plant = harvestedPlant,
                 Position = position,
-                Reward = harvestedPlant.Data.SellPrice
             });
 
             _grid.SetValueAndForceNotify(_grid.Value);
@@ -173,7 +173,7 @@ public class GridService : IGridService, IDisposable
         var selectedRarity = GetRandomRarity();
         
         // Фильтруем растения по выбранной редкости
-        var plantsOfRarity = System.Array.FindAll(plants, p => p.Rarity == selectedRarity);
+        var plantsOfRarity = System.Array.FindAll(plants, p => p != null && p.Rarity == selectedRarity);
         
         // Если растений выбранной редкости нет, возвращаем случайное растение
         if (plantsOfRarity.Length == 0)
