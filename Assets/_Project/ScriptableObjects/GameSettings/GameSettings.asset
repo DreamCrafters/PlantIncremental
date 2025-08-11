@@ -16,6 +16,7 @@ MonoBehaviour:
   DisplayType: 1
   OrthographicTileSize: {x: 1.1, y: 1.1}
   IsometricTileSize: {x: 0.6, y: 0.3}
+  CameraMargin: 1
   AutoSaveInterval: 30
   DayDuration: 180
   ViewPrefab: {fileID: 2957457302213695260, guid: d55f61d889a764b208ee005ba3f3b143, type: 3}
