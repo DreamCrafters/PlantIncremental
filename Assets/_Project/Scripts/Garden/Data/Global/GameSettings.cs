@@ -8,7 +8,11 @@ public class GameSettings : ScriptableObject
     public GridDisplayType DisplayType = GridDisplayType.Orthogonal;
     public Vector2 OrthographicTileSize = new(0.5f, 0.25f);
     public Vector2 IsometricTileSize = new(0.5f, 0.25f);
-    
+
+    [Header("Interaction")]
+    [Tooltip("Кулдаун между взаимодействиями (в секундах)")]
+    public float InteractionCooldown = 0.5f;
+
     [Header("Camera")]
     [Tooltip("Отступ от края карты до края камеры (в мировых единицах)")]
     public float CameraMargin = 1.0f;

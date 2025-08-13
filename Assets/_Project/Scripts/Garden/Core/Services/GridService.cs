@@ -12,8 +12,12 @@ public class GridService : IGridService, IDisposable
     private readonly GameSettings _settings;
     private readonly IPlantFactory _plantFactory;
 
+    private float _lastInteractionTime;
+
     public IReadOnlyReactiveProperty<GridCell[,]> Grid => _grid;
     public IObservable<PlantHarvestedEvent> OnPlantHarvested => _onPlantHarvested;
+    public float InteractionCooldown => _settings.InteractionCooldown;
+    public float LastInteractionTime => _lastInteractionTime;
 
     [Inject]
     public GridService(GameSettings settings, IPlantFactory plantFactory)
@@ -37,6 +41,8 @@ public class GridService : IGridService, IDisposable
 
     public bool TryPlantAt(Vector2Int position)
     {
+        if (IsAbleToInteract() == false) return false;
+
         var cell = GetCell(position);
 
         if (cell == null || !cell.IsEmpty) return false;
@@ -50,6 +56,7 @@ public class GridService : IGridService, IDisposable
         if (cell.TryPlant(plant))
         {
             _grid.SetValueAndForceNotify(_grid.Value);
+            _lastInteractionTime = Time.time;
             return true;
         }
 
@@ -58,6 +65,8 @@ public class GridService : IGridService, IDisposable
 
     public bool TryHarvestAt(Vector2Int position)
     {
+        if (IsAbleToInteract() == false) return false;
+
         var cell = GetCell(position);
 
         if (cell == null || cell.IsEmpty) return false;
@@ -77,6 +86,7 @@ public class GridService : IGridService, IDisposable
             });
 
             _grid.SetValueAndForceNotify(_grid.Value);
+            _lastInteractionTime = Time.time;
             return true;
         }
 
@@ -125,6 +135,11 @@ public class GridService : IGridService, IDisposable
         }
 
         return false;
+    }
+
+    private bool IsAbleToInteract()
+    {
+        return Time.time - _lastInteractionTime > _settings.InteractionCooldown;
     }
 
     private GridCell[,] InitializeGrid()

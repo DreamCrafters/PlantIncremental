@@ -1,8 +1,8 @@
 using UnityEngine;
 
-public class ExtraCoinsSkill : Skill
+public class UnlockSkill : Skill
 {
-    [Header("Extra Coins Skill")]
+    [Header("Unlock Skill")]
     [SerializeField] private Type _type;
 
     protected override void UpgradeHandle()
@@ -11,7 +11,6 @@ public class ExtraCoinsSkill : Skill
 
     public enum Type
     {
-        PerHarvest,
-        PerSecondByGrowedPlants
+        None,
     }
 }

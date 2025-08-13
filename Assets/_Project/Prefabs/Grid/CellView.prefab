@@ -10082,14 +10082,12 @@ MonoBehaviour:
   _soilRenderer: {fileID: 2231733407102879368}
   _highlightRenderer: {fileID: 3073867539483365106}
   _fertileSprite: {fileID: 2094943551, guid: b9322abd4f2aaad4c979c052daa67961, type: 3}
-  _rockySprite: {fileID: -1343434854, guid: b9322abd4f2aaad4c979c052daa67961, type: 3}
-  _unsuitableSprite: {fileID: 1898236768, guid: b9322abd4f2aaad4c979c052daa67961, type: 3}
+  _rockySprite: {fileID: 680645575, guid: b9322abd4f2aaad4c979c052daa67961, type: 3}
+  _unsuitableSprite: {fileID: -1568204664, guid: b9322abd4f2aaad4c979c052daa67961, type: 3}
   _normalColor: {r: 1, g: 1, b: 1, a: 1}
   _highlightColor: {r: 1, g: 1, b: 0.8, a: 0.5}
-  _unavailableColor: {r: 0.5, g: 0.5, b: 0.5, a: 0.8}
   _plantEffect: {fileID: 2602439916783443881}
   _harvestEffect: {fileID: 4567505943162363046}
-  _glowEffect: {fileID: 0}
 --- !u!60 &214635375449381621
 PolygonCollider2D:
   m_ObjectHideFlags: 0

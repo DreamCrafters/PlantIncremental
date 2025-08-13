@@ -53,57 +53,6 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
     }
 
     /// <summary>
-    /// Безопасно убивает все активные твины
-    /// </summary>
-    private void KillAllTweens()
-    {
-        // Отменяем все активные твины из списка
-        for (int i = _activeTweens.Count - 1; i >= 0; i--)
-        {
-            if (_activeTweens[i] != null && _activeTweens[i].IsActive())
-            {
-                _activeTweens[i].Kill();
-            }
-        }
-        _activeTweens.Clear();
-
-        // Дополнительная очистка по объектам
-        DOTween.Kill(transform);
-        if (_baseRenderer != null) DOTween.Kill(_baseRenderer);
-        if (_soilRenderer != null) DOTween.Kill(_soilRenderer);
-        if (_highlightRenderer != null) DOTween.Kill(_highlightRenderer);
-    }
-
-    /// <summary>
-    /// Добавляет твин в список активных для отслеживания
-    /// </summary>
-    private void AddTween(Tween tween)
-    {
-        if (tween != null)
-        {
-            _activeTweens.Add(tween);
-
-            // Автоматически удаляем из списка по завершении
-            tween.OnComplete(() =>
-            {
-                if (tween != null)
-                {
-                    _activeTweens.Remove(tween);
-                }
-            });
-
-            // Дополнительная безопасность - удаляем из списка при убийстве
-            tween.OnKill(() =>
-            {
-                if (tween != null)
-                {
-                    _activeTweens.Remove(tween);
-                }
-            });
-        }
-    }
-
-    /// <summary>
     /// Обработка клика по клетке
     /// </summary>
     public void OnPointerClick(PointerEventData eventData)
@@ -152,6 +101,57 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
         if (_currentPlantView != null)
         {
             _currentPlantView.SetHighlight(false);
+        }
+    }
+
+    /// <summary>
+    /// Безопасно убивает все активные твины
+    /// </summary>
+    private void KillAllTweens()
+    {
+        // Отменяем все активные твины из списка
+        for (int i = _activeTweens.Count - 1; i >= 0; i--)
+        {
+            if (_activeTweens[i] != null && _activeTweens[i].IsActive())
+            {
+                _activeTweens[i].Kill();
+            }
+        }
+        _activeTweens.Clear();
+
+        // Дополнительная очистка по объектам
+        DOTween.Kill(transform);
+        if (_baseRenderer != null) DOTween.Kill(_baseRenderer);
+        if (_soilRenderer != null) DOTween.Kill(_soilRenderer);
+        if (_highlightRenderer != null) DOTween.Kill(_highlightRenderer);
+    }
+
+    /// <summary>
+    /// Добавляет твин в список активных для отслеживания
+    /// </summary>
+    private void AddTween(Tween tween)
+    {
+        if (tween != null)
+        {
+            _activeTweens.Add(tween);
+
+            // Автоматически удаляем из списка по завершении
+            tween.OnComplete(() =>
+            {
+                if (tween != null)
+                {
+                    _activeTweens.Remove(tween);
+                }
+            });
+
+            // Дополнительная безопасность - удаляем из списка при убийстве
+            tween.OnKill(() =>
+            {
+                if (tween != null)
+                {
+                    _activeTweens.Remove(tween);
+                }
+            });
         }
     }
 

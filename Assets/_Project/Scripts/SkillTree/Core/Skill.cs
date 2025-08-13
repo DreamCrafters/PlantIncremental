@@ -4,11 +4,13 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using VContainer;
 
-public abstract class Skill : MonoBehaviour, IPointerClickHandler
+public abstract class Skill : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
 {
     [Inject] private readonly IEconomyService _economyService;
 
-    [SerializeField] private int _maxLevel;
+    [SerializeField] private string _name;
+    [SerializeField, TextArea] private string _description;
+    [SerializeField, Min(1)] private int _maxLevel;
     [SerializeField] private int _coinsUpgradeCost;
     [SerializeField] private List<PetalsUpgradeCost> _petalsUpgradeCosts = new();
     [SerializeField] private List<Skill> _children = new();
@@ -16,7 +18,11 @@ public abstract class Skill : MonoBehaviour, IPointerClickHandler
     private int _currentLevel = 0;
 
     public IReadOnlyList<Skill> Children => _children;
+    public string Name => _name;
+    public string Description => _description;
 
+    public event Action OnHover;
+    public event Action OnHoverExit;
     public event Action OnLock;
     public event Action OnUnlock;
     public event Action<int> OnUpgrade;
@@ -24,6 +30,16 @@ public abstract class Skill : MonoBehaviour, IPointerClickHandler
     public void OnPointerClick(PointerEventData eventData)
     {
         TryUpgrade();
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        OnHover?.Invoke();
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        OnHoverExit?.Invoke();
     }
 
     public void LockAll(bool isRoot = true)

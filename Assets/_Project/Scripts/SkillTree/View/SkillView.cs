@@ -3,12 +3,15 @@ using UnityEngine;
 public class SkillView : MonoBehaviour
 {
     [SerializeField] private Skill _skill;
+    [SerializeField] private SkillDescription _skillDescription;
 
     private void Awake()
     {
         _skill.OnLock += HandleSkillLock;
         _skill.OnUnlock += HandleSkillUnlock;
         _skill.OnUpgrade += HandleSkillUpgrade;
+        _skill.OnHover += HandleSkillHover;
+        _skill.OnHoverExit += HandleSkillHoverExit;
     }
 
     private void OnDestroy()
@@ -16,6 +19,8 @@ public class SkillView : MonoBehaviour
         _skill.OnLock -= HandleSkillLock;
         _skill.OnUnlock -= HandleSkillUnlock;
         _skill.OnUpgrade -= HandleSkillUpgrade;
+        _skill.OnHover -= HandleSkillHover;
+        _skill.OnHoverExit -= HandleSkillHoverExit;
     }
 
     private void HandleSkillLock()
@@ -26,6 +31,16 @@ public class SkillView : MonoBehaviour
     private void HandleSkillUnlock()
     {
         gameObject.SetActive(true);
+    }
+
+    private void HandleSkillHover()
+    {
+        _skillDescription.Show(_skill.Name, _skill.Description);
+    }
+
+    private void HandleSkillHoverExit()
+    {
+        _skillDescription.Hide();
     }
 
     private void HandleSkillUpgrade(int level)
