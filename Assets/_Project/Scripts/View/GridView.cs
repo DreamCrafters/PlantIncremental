@@ -41,21 +41,7 @@ public class GridView : MonoBehaviour
         DOTween.Kill(transform);
     }
 
-    /// <summary>
-    /// Безопасно убивает все активные твины
-    /// </summary>
-    private void KillAllTweens()
-    {
-        // Отменяем все активные твины
-        for (int i = _activeTweens.Count - 1; i >= 0; i--)
-        {
-            if (_activeTweens[i] != null && _activeTweens[i].IsActive())
-            {
-                _activeTweens[i].Kill();
-            }
-        }
-        _activeTweens.Clear();
-    }
+    #region Public API
 
     /// <summary>
     /// Инициализирует визуальную сетку
@@ -113,16 +99,6 @@ public class GridView : MonoBehaviour
         _cells[position] = cellView;
 
         return cellView;
-    }
-
-    /// <summary>
-    /// Преобразует координаты сетки в мировые координаты
-    /// </summary>
-    public Vector3 GridToWorldPosition(Vector2Int gridPos)
-    {
-        return _gameSettings == null || _gameSettings.DisplayType == GridDisplayType.Orthogonal
-            ? GridToWorldPositionOrthogonal(gridPos)
-            : GridToWorldPositionIsometric(gridPos);
     }
 
     /// <summary>
@@ -221,10 +197,14 @@ public class GridView : MonoBehaviour
         }
     }
 
+    #endregion
+
+    #region Private Methods
+
     /// <summary>
     /// Очищает сетку
     /// </summary>
-    public void ClearGrid()
+    private void ClearGrid()
     {
         // Сначала убиваем все твины
         KillAllTweens();
@@ -256,6 +236,32 @@ public class GridView : MonoBehaviour
         }
 
         _cells.Clear();
+    }
+
+    /// <summary>
+    /// Преобразует координаты сетки в мировые координаты
+    /// </summary>
+    private Vector3 GridToWorldPosition(Vector2Int gridPos)
+    {
+        return _gameSettings == null || _gameSettings.DisplayType == GridDisplayType.Orthogonal
+            ? GridToWorldPositionOrthogonal(gridPos)
+            : GridToWorldPositionIsometric(gridPos);
+    }
+
+    /// <summary>
+    /// Безопасно убивает все активные твины
+    /// </summary>
+    private void KillAllTweens()
+    {
+        // Отменяем все активные твины
+        for (int i = _activeTweens.Count - 1; i >= 0; i--)
+        {
+            if (_activeTweens[i] != null && _activeTweens[i].IsActive())
+            {
+                _activeTweens[i].Kill();
+            }
+        }
+        _activeTweens.Clear();
     }
 
     /// <summary>
@@ -468,4 +474,6 @@ public class GridView : MonoBehaviour
             _messagePool.Enqueue(message);
         }
     }
+
+    #endregion
 }

@@ -1,0 +1,135 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3d7c2cb3174041f086d15129d8a3c7f, type: 3}
+  m_Name: PlantSkillTree
+  m_EditorClassIdentifier: 
+  TreeId: plants
+  TreeName: "\u041C\u0430\u0441\u0442\u0435\u0440\u0441\u0442\u0432\u043E \u0440\u0430\u0441\u0442\u0435\u043D\u0438\u0439"
+  Description: "\u0423\u043B\u0443\u0447\u0448\u0435\u043D\u0438\u044F \u0437\u0430
+    \u043B\u0435\u043F\u0435\u0441\u0442\u043A\u0438"
+  Nodes:
+  - NodeId: node_mutation
+    Position: {x: 0, y: 0}
+    Skill:
+      Id: mutation_chance
+      Name: "\u0413\u0435\u043D\u0435\u0442\u0438\u043A"
+      Description: "\u0423\u0432\u0435\u043B\u0438\u0447\u0438\u0432\u0430\u0435\u0442
+        \u0448\u0430\u043D\u0441 \u043C\u0443\u0442\u0430\u0446\u0438\u0438 \u043F\u0440\u0438
+        \u043F\u043E\u0441\u0430\u0434\u043A\u0435"
+      Icon: {fileID: 0}
+      Type: 0
+      MaxLevel: 3
+      LevelCosts:
+      - Level: 1
+        CoinCost: 0
+        RequiredPetalType: 0
+        PetalCost: 10
+      - Level: 2
+        CoinCost: 0
+        RequiredPetalType: 0
+        PetalCost: 25
+      - Level: 3
+        CoinCost: 0
+        RequiredPetalType: 0
+        PetalCost: 50
+      Effects:
+      - Level: 1
+        Parameter: mutation_chance
+        Value: 0.02
+        IsMultiplier: 0
+      - Level: 2
+        Parameter: mutation_chance
+        Value: 0.05
+        IsMultiplier: 0
+      - Level: 3
+        Parameter: mutation_chance
+        Value: 0.1
+        IsMultiplier: 0
+    PrerequisiteNodeIds: []
+  - NodeId: node_petals
+    Position: {x: -100, y: 100}
+    Skill:
+      Id: petal_bonus
+      Name: "\u0421\u0431\u043E\u0440\u0449\u0438\u043A \u043B\u0435\u043F\u0435\u0441\u0442\u043A\u043E\u0432"
+      Description: "\u0423\u0432\u0435\u043B\u0438\u0447\u0438\u0432\u0430\u0435\u0442
+        \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u043B\u0435\u043F\u0435\u0441\u0442\u043A\u043E\u0432
+        \u043F\u0440\u0438 \u0441\u0431\u043E\u0440\u0435"
+      Icon: {fileID: 0}
+      Type: 2
+      MaxLevel: 3
+      LevelCosts:
+      - Level: 1
+        CoinCost: 0
+        RequiredPetalType: 0
+        PetalCost: 15
+      - Level: 2
+        CoinCost: 0
+        RequiredPetalType: 0
+        PetalCost: 30
+      - Level: 3
+        CoinCost: 0
+        RequiredPetalType: 0
+        PetalCost: 60
+      Effects:
+      - Level: 1
+        Parameter: petal_multiplier
+        Value: 1.5
+        IsMultiplier: 1
+      - Level: 2
+        Parameter: petal_multiplier
+        Value: 2
+        IsMultiplier: 1
+      - Level: 3
+        Parameter: petal_multiplier
+        Value: 3
+        IsMultiplier: 1
+    PrerequisiteNodeIds:
+    - node_mutation
+  - NodeId: node_wither
+    Position: {x: 100, y: 100}
+    Skill:
+      Id: wither_protection
+      Name: "\u0421\u0430\u0434\u043E\u0432\u043D\u0438\u043A"
+      Description: "\u0423\u043C\u0435\u043D\u044C\u0448\u0430\u0435\u0442 \u0448\u0430\u043D\u0441
+        \u0443\u0432\u044F\u0434\u0430\u043D\u0438\u044F \u0440\u0430\u0441\u0442\u0435\u043D\u0438\u0439"
+      Icon: {fileID: 0}
+      Type: 0
+      MaxLevel: 3
+      LevelCosts:
+      - Level: 1
+        CoinCost: 200
+        RequiredPetalType: 0
+        PetalCost: 20
+      - Level: 2
+        CoinCost: 500
+        RequiredPetalType: 0
+        PetalCost: 40
+      - Level: 3
+        CoinCost: 1000
+        RequiredPetalType: 0
+        PetalCost: 80
+      Effects:
+      - Level: 1
+        Parameter: wither_chance
+        Value: 0.8
+        IsMultiplier: 1
+      - Level: 2
+        Parameter: wither_chance
+        Value: 0.6
+        IsMultiplier: 1
+      - Level: 3
+        Parameter: wither_chance
+        Value: 0.4
+        IsMultiplier: 1
+    PrerequisiteNodeIds:
+    - node_mutation
+  BackgroundImage: {fileID: 0}

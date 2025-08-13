@@ -27,7 +27,6 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
     [Header("Colors")]
     [SerializeField] private Color _normalColor = Color.white;
     [SerializeField] private Color _highlightColor = new(1f, 1f, 0.8f, 0.5f);
-    [SerializeField] private Color _unavailableColor = new(0.5f, 0.5f, 0.5f, 0.8f);
 
     [Header("Effects")]
     [SerializeField] private ParticleSystem _plantEffect;
@@ -83,7 +82,7 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
         if (tween != null)
         {
             _activeTweens.Add(tween);
-            
+
             // Автоматически удаляем из списка по завершении
             tween.OnComplete(() =>
             {
@@ -124,7 +123,7 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
 
         // Легкая подсветка при наведении
         _baseRenderer.color = Color.Lerp(_normalColor, _highlightColor, 0.3f);
-        
+
         var scaleTween = transform.DOScale(_originalScale * 1.02f, 0.1f)
             .SetTarget(transform);
         AddTween(scaleTween);
@@ -144,7 +143,7 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
         if (_baseRenderer == null || transform == null) return;
 
         _baseRenderer.color = _normalColor;
-        
+
         var scaleTween = transform.DOScale(_originalScale, 0.1f)
             .SetTarget(transform);
         AddTween(scaleTween);
@@ -165,15 +164,7 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
 
         SetSoilType(cell.SoilType);
 
-        // Обновляем цвет в зависимости от состояния
-        if (cell.SoilType == SoilType.Unsuitable)
-        {
-            _baseRenderer.color = _unavailableColor;
-        }
-        else
-        {
-            _baseRenderer.color = _normalColor;
-        }
+        _baseRenderer.color = _normalColor;
     }
 
     /// <summary>
@@ -228,7 +219,7 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
         // Вспышка цвета
         var colorTween1 = _baseRenderer.DOColor(Color.white, 0.1f).SetTarget(_baseRenderer);
         var colorTween2 = _baseRenderer.DOColor(_normalColor, 0.2f).SetTarget(_baseRenderer);
-        
+
         sequence.Join(colorTween1);
         sequence.Append(colorTween2);
 
@@ -277,8 +268,8 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
         _soilRenderer.sprite = soilType switch
         {
             SoilType.Fertile => _fertileSprite,
-            SoilType.Rocky => _rockySprite,
-            SoilType.Unsuitable => _unsuitableSprite,
+            SoilType.Base => _rockySprite,
+            SoilType.Rocky => _unsuitableSprite,
             _ => null
         };
 
