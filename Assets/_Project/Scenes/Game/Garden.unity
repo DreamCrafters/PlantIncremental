@@ -166,7 +166,6 @@ GameObject:
   m_Component:
   - component: {fileID: 519420032}
   - component: {fileID: 519420031}
-  - component: {fileID: 519420033}
   - component: {fileID: 519420029}
   - component: {fileID: 519420030}
   m_Layer: 0
@@ -294,22 +293,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 745995786}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &519420033
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 519420028}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 56666c5a40171f54783dd416a44f42bf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_EventMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_MaxRayIntersections: 0
 --- !u!1 &524790434
 GameObject:
   m_ObjectHideFlags: 0
@@ -1055,7 +1038,6 @@ MonoBehaviour:
   autoInjectGameObjects:
   - {fileID: 1029716303}
   _gameSettings: {fileID: 11400000, guid: 5c96bc574a05d46d4874a538487859c5, type: 2}
-  _skillTreeConfig: {fileID: 11400000, guid: b3d2d307153234f8eb1a0324ec8e79e2, type: 2}
   _coinsView: {fileID: 524790438}
   _gridView: {fileID: 921112747}
   _petalsView: {fileID: 1697705450}
