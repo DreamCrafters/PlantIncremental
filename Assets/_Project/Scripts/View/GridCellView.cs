@@ -17,7 +17,6 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
     [Header("Visual Components")]
     [SerializeField] private SpriteRenderer _baseRenderer;
     [SerializeField] private SpriteRenderer _soilRenderer;
-    [SerializeField] private SpriteRenderer _highlightRenderer;
 
     [Header("Sprites")]
     [SerializeField] private Sprite _fertileSprite;
@@ -123,7 +122,6 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
         DOTween.Kill(transform);
         if (_baseRenderer != null) DOTween.Kill(_baseRenderer);
         if (_soilRenderer != null) DOTween.Kill(_soilRenderer);
-        if (_highlightRenderer != null) DOTween.Kill(_highlightRenderer);
     }
 
     /// <summary>

@@ -15,8 +15,8 @@ MonoBehaviour:
   GridSize: {x: 10, y: 10}
   DisplayType: 1
   OrthographicTileSize: {x: 1.1, y: 1.1}
-  IsometricTileSize: {x: 0.6, y: 0.3}
-  InteractionCooldown: 1
+  IsometricTileSize: {x: 0.5, y: 0.25}
+  InteractionCooldown: 0
   CameraMargin: 1
   AutoSaveInterval: 30
   DayDuration: 180
