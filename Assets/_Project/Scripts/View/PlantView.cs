@@ -6,7 +6,6 @@ using DG.Tweening;
 /// <summary>
 /// Визуальное представление растения с анимациями и эффектами
 /// </summary>
-[RequireComponent(typeof(SpriteRenderer))]
 public class PlantView : MonoBehaviour
 {
     [Header("Components")]
