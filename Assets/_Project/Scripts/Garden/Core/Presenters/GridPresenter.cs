@@ -107,12 +107,12 @@ public class GridPresenter : IInitializable, IDisposable
         var cell = _gridService.GetCell(position);
         if (cell == null) return;
 
-        if (cell.IsEmpty)
+        if (cell.IsEmpty && cell.SoilType != SoilType.Unsuitable)
         {
             // Пытаемся посадить растение
             TryPlantAt(position);
         }
-        else if (cell.Plant.State.Value == PlantState.FullyGrown)
+        else if (cell.Plant != null && cell.Plant.State.Value == PlantState.FullyGrown)
         {
             // Пытаемся собрать урожай
             TryHarvestAt(position);
@@ -197,37 +197,23 @@ public class GridPresenter : IInitializable, IDisposable
     /// </summary>
     private void OnPlantHarvested(PlantHarvestedEvent evt)
     {
-        int coinsToAdd = 0;
+        // Только визуальные эффекты и UI логика
+        var reward = evt.Reward;
+        
+        // Показываем всплывающее сообщение о награде
+        ShowRewardPopup(evt.Position, reward);
+        
+        // Визуальный эффект сбора урожая
+        PlayHarvestEffect(evt.Position);
 
-        if (evt.Plant is PlantEntity entity)
-        {
-            PlantHarvestResult harvestResult = entity.Harvest();
-            coinsToAdd = harvestResult.Coins;
-
-            // Добавляем лепестки
-            if (harvestResult.Petals.Amount > 0)
-            {
-                _economyService.AddPetals(harvestResult.Petals.Type, harvestResult.Petals.Amount);
-            }
-
-            // Показываем всплывающее сообщение о награде
-            ShowRewardPopup(evt.Position, harvestResult);
-        }
-
-        // Добавляем монеты один раз после получения результата
-        if (coinsToAdd > 0)
-        {
-            _economyService.AddCoins(coinsToAdd);
-        }
-
-        // Останавливаем рост (уже собрано)
+        // Останавливаем рост (растение уже собрано)
         _growthService.StopGrowing(evt.Plant);
     }
 
     /// <summary>
     /// Показывает всплывающее окно с наградой
     /// </summary>
-    private void ShowRewardPopup(Vector2Int position, PlantHarvestResult result)
+    private void ShowRewardPopup(Vector2Int position, RewardResult result)
     {
         if (_cellViews.TryGetValue(position, out var cellView))
         {

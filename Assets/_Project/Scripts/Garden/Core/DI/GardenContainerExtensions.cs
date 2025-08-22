@@ -9,9 +9,9 @@ public static class GardenContainerExtensions
         builder.RegisterInstance(gameSettings);
 
         // Регистрация сервисов
-        builder.Register<ITimeService, TimeService>(Lifetime.Singleton);
         builder.Register<ISaveService, SaveService>(Lifetime.Singleton);
         builder.Register<IEconomyService, EconomyService>(Lifetime.Singleton);
+        builder.Register<IRewardService, RewardService>(Lifetime.Singleton);
         builder.Register<IGridService, GridService>(Lifetime.Singleton);
         builder.Register<IPlantGrowthService, PlantGrowthService>(Lifetime.Singleton);
 

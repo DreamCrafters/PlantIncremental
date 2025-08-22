@@ -1,19 +1,17 @@
 using System;
 using UniRx;
 using UnityEngine;
-using VContainer;
 
 /// <summary>
 /// Основная сущность растения, управляющая состоянием и визуализацией
 /// </summary>
 public class PlantEntity : IPlantEntity, IDisposable
 {
-   [Inject] private readonly ITimeService _timeService;
-
     private readonly ReactiveProperty<float> _growthProgress = new(0f);
     private readonly ReactiveProperty<PlantState> _state = new(PlantState.Seed);
     private readonly CompositeDisposable _disposables = new();
 
+    private readonly GameSettings _gameSettings;
     private readonly PlantView _view;
 
     // Кэшируем для оптимизации
@@ -30,11 +28,11 @@ public class PlantEntity : IPlantEntity, IDisposable
     public bool IsWithered => _state.Value == PlantState.Withered;
     public Vector2 Position => _view.transform.position;
 
-    [Inject]
-    public PlantEntity(PlantData data, PlantView view)
+    public PlantEntity(PlantData data, PlantView view, GameSettings gameSettings)
     {
-        Data = data ?? throw new ArgumentNullException(nameof(data));
-        _view = view ?? throw new ArgumentNullException(nameof(view));
+        Data = data;
+        _view = view;
+        _gameSettings = gameSettings;
 
         InitializeWitherChance();
         SubscribeToStateChanges();
@@ -60,7 +58,7 @@ public class PlantEntity : IPlantEntity, IDisposable
         _growthSpeedModifier = growthModifier;
 
         // Подписываемся на каждую секунду для обновления роста (на главном потоке)
-        _timeService.EverySecond
+        Observable.Interval(TimeSpan.FromSeconds(1))
             .ObserveOnMainThread()
             .TakeWhile(_ => _state.Value != PlantState.FullyGrown && _state.Value != PlantState.Withered)
             .Subscribe(_ => UpdateGrowth())
@@ -93,7 +91,7 @@ public class PlantEntity : IPlantEntity, IDisposable
         };
 
         // Анимация сбора
-        PlayHarvestAnimation();
+        _view.PlayHarvestAnimation();
 
         return result;
     }
@@ -218,8 +216,8 @@ public class PlantEntity : IPlantEntity, IDisposable
         if (_isWithering) return;
         _isWithering = true;
 
-        // Проверяем шанс увядания каждые 10 секунд (на главном потоке)
-        Observable.Interval(TimeSpan.FromSeconds(10))
+        // Проверяем шанс увядания каждые 1 секунд (на главном потоке)
+        Observable.Interval(TimeSpan.FromSeconds(1))
             .ObserveOnMainThread()
             .TakeWhile(_ => _state.Value == PlantState.FullyGrown)
             .Subscribe(_ => CheckWither())
@@ -237,48 +235,16 @@ public class PlantEntity : IPlantEntity, IDisposable
 
     private void InitializeWitherChance()
     {
-        // Базовый шанс увядания зависит от редкости
-        _witherChance = Data.Rarity switch
-        {
-            PlantRarity.Common => 0.05f,      // 5% за проверку
-            PlantRarity.Uncommon => 0.07f,    // 7%
-            PlantRarity.Rare => 0.1f,         // 10%
-            PlantRarity.Epic => 0.12f,        // 12%
-            PlantRarity.Legendary => 0.15f,   // 15% - высокий риск за высокую награду
-            _ => 0.05f
-        };
+        _witherChance = _gameSettings.WitherChancePerSecond;
     }
 
     private int CalculateCoinsReward()
     {
-        var baseReward = Data.SellPrice;
-        return Mathf.RoundToInt(baseReward);
+        return Data.SellPrice;
     }
 
     private PetalData CalculatePetalsReward()
     {
-        var basePetals = GetPetalsAmount();
-        return new PetalData(Data.Type, basePetals);
-    }
-
-    private int GetPetalsAmount()
-    {
-        return Data.Rarity switch
-        {
-            PlantRarity.Common => 1,
-            PlantRarity.Uncommon => 2,
-            PlantRarity.Rare => 3,
-            PlantRarity.Epic => 5,
-            PlantRarity.Legendary => 10,
-            _ => 1
-        };
-    }
-
-    private void PlayHarvestAnimation()
-    {
-        if (_view != null)
-        {
-            _view.PlayHarvestAnimation();
-        }
+        return new PetalData(Data.Type, 1);
     }
 }

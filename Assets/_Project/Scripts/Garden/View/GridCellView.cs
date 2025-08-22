@@ -266,8 +266,8 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
         _soilRenderer.sprite = soilType switch
         {
             SoilType.Fertile => _fertileSprite,
-            SoilType.Base => _rockySprite,
-            SoilType.Rocky => _unsuitableSprite,
+            SoilType.Rocky => _rockySprite,
+            SoilType.Unsuitable => _unsuitableSprite,
             _ => null
         };
 

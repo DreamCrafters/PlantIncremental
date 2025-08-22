@@ -16,7 +16,6 @@ public class PlantView : MonoBehaviour
     [SerializeField] private ParticleSystem _growthParticles;
     [SerializeField] private ParticleSystem _harvestParticles;
     [SerializeField] private ParticleSystem _passiveEffectParticles;
-    [SerializeField] private GameObject _witherOverlay;
 
     [Header("Animation Settings")]
     [SerializeField] private float _growthAnimationDuration = 0.5f;
@@ -25,6 +24,7 @@ public class PlantView : MonoBehaviour
     // Кэшированные компоненты
     private Vector3 _originalScale;
     private Color _originalColor;
+    private bool _isWithered = false;
 
     // Состояние
     private bool _isAnimating;
@@ -47,56 +47,6 @@ public class PlantView : MonoBehaviour
         if (_passiveEffectCoroutine != null)
         {
             StopCoroutine(_passiveEffectCoroutine);
-        }
-    }
-
-    /// <summary>
-    /// Безопасно убивает все активные твины
-    /// </summary>
-    private void KillAllTweens()
-    {
-        // Отменяем все активные твины из списка
-        for (int i = _activeTweens.Count - 1; i >= 0; i--)
-        {
-            if (_activeTweens[i] != null && _activeTweens[i].IsActive())
-            {
-                _activeTweens[i].Kill();
-            }
-        }
-        _activeTweens.Clear();
-
-        // Дополнительная очистка по объектам
-        DOTween.Kill(transform);
-        if (_spriteRenderer != null) DOTween.Kill(_spriteRenderer);
-        if (_visualTransform != null) DOTween.Kill(_visualTransform);
-    }
-
-    /// <summary>
-    /// Добавляет твин в список активных для отслеживания
-    /// </summary>
-    private void AddTween(Tween tween)
-    {
-        if (tween != null)
-        {
-            _activeTweens.Add(tween);
-
-            // Автоматически удаляем из списка по завершении
-            tween.OnComplete(() =>
-            {
-                if (tween != null)
-                {
-                    _activeTweens.Remove(tween);
-                }
-            });
-
-            // Дополнительная безопасность - удаляем из списка при убийстве
-            tween.OnKill(() =>
-            {
-                if (tween != null)
-                {
-                    _activeTweens.Remove(tween);
-                }
-            });
         }
     }
 
@@ -134,16 +84,6 @@ public class PlantView : MonoBehaviour
         // Анимация "радости"
         var sequence = DOTween.Sequence();
         sequence.SetTarget(_visualTransform);
-
-        var rotate1 = _visualTransform.DORotate(new Vector3(0, 0, -10), 0.1f).SetTarget(_visualTransform);
-        var rotate2 = _visualTransform.DORotate(new Vector3(0, 0, 10), 0.2f).SetTarget(_visualTransform);
-        var rotate3 = _visualTransform.DORotate(new Vector3(0, 0, -5), 0.1f).SetTarget(_visualTransform);
-        var rotate4 = _visualTransform.DORotate(new Vector3(0, 0, 0), 0.1f).SetTarget(_visualTransform);
-
-        sequence.Append(rotate1);
-        sequence.Append(rotate2);
-        sequence.Append(rotate3);
-        sequence.Append(rotate4);
 
         // Пульсация масштаба
         var scale1 = _visualTransform.DOScale(_originalScale * 1.3f, 0.3f)
@@ -231,13 +171,7 @@ public class PlantView : MonoBehaviour
     /// </summary>
     public void SetWitheredVisual()
     {
-        if (_witherOverlay != null)
-        {
-            _witherOverlay.SetActive(true);
-        }
-
-        // Затемняем и обесцвечиваем спрайт
-        _spriteRenderer.color = new Color(0.4f, 0.3f, 0.2f, 0.8f);
+        _isWithered = true;
 
         // Останавливаем все эффекты
         StopPassiveEffect();
@@ -259,12 +193,9 @@ public class PlantView : MonoBehaviour
             .SetTarget(_visualTransform);
         var scaleTween = _visualTransform.DOScale(_originalScale * 0.8f, 0.5f)
             .SetTarget(_visualTransform);
-        var colorTween = _spriteRenderer.DOColor(new Color(0.4f, 0.3f, 0.2f, 0.8f), 1f)
-            .SetTarget(_spriteRenderer);
 
         sequence.Append(rotateTween);
         sequence.Join(scaleTween);
-        sequence.Join(colorTween);
 
         // Активируем оверлей
         sequence.OnComplete(() =>
@@ -307,7 +238,7 @@ public class PlantView : MonoBehaviour
     /// </summary>
     public void SetHighlight(bool active)
     {
-        if (_spriteRenderer == null || _visualTransform == null) return;
+        if (_spriteRenderer == null || _visualTransform == null || _isWithered) return;
 
         if (active)
         {
@@ -334,6 +265,56 @@ public class PlantView : MonoBehaviour
         _isAnimating = false;
     }
 
+    /// <summary>
+    /// Безопасно убивает все активные твины
+    /// </summary>
+    private void KillAllTweens()
+    {
+        // Отменяем все активные твины из списка
+        for (int i = _activeTweens.Count - 1; i >= 0; i--)
+        {
+            if (_activeTweens[i] != null && _activeTweens[i].IsActive())
+            {
+                _activeTweens[i].Kill();
+            }
+        }
+        _activeTweens.Clear();
+
+        // Дополнительная очистка по объектам
+        DOTween.Kill(transform);
+        if (_spriteRenderer != null) DOTween.Kill(_spriteRenderer);
+        if (_visualTransform != null) DOTween.Kill(_visualTransform);
+    }
+
+    /// <summary>
+    /// Добавляет твин в список активных для отслеживания
+    /// </summary>
+    private void AddTween(Tween tween)
+    {
+        if (tween != null)
+        {
+            _activeTweens.Add(tween);
+
+            // Автоматически удаляем из списка по завершении
+            tween.OnComplete(() =>
+            {
+                if (tween != null)
+                {
+                    _activeTweens.Remove(tween);
+                }
+            });
+
+            // Дополнительная безопасность - удаляем из списка при убийстве
+            tween.OnKill(() =>
+            {
+                if (tween != null)
+                {
+                    _activeTweens.Remove(tween);
+                }
+            });
+        }
+    }
+
     private void CacheComponents()
     {
         if (_spriteRenderer == null)
@@ -341,12 +322,6 @@ public class PlantView : MonoBehaviour
 
         if (_visualTransform == null)
             _visualTransform = transform;
-
-        // Создаем оверлей для увядания если его нет
-        if (_witherOverlay == null)
-        {
-            CreateWitherOverlay();
-        }
     }
 
     /// <summary>
@@ -435,22 +410,5 @@ public class PlantView : MonoBehaviour
 
             yield return new WaitForSeconds(1f);
         }
-    }
-
-    /// <summary>
-    /// Создает оверлей для эффекта увядания
-    /// </summary>
-    private void CreateWitherOverlay()
-    {
-        _witherOverlay = new GameObject("WitherOverlay");
-        _witherOverlay.transform.SetParent(transform);
-        _witherOverlay.transform.localPosition = Vector3.zero;
-        _witherOverlay.transform.localScale = Vector3.one;
-
-        var overlaySprite = _witherOverlay.AddComponent<SpriteRenderer>();
-        overlaySprite.sortingOrder = _spriteRenderer.sortingOrder + 1;
-        overlaySprite.color = new Color(0.2f, 0.1f, 0f, 0.3f);
-
-        _witherOverlay.SetActive(false);
     }
 }

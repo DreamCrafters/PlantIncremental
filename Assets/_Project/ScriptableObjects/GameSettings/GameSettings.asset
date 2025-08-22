@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7891e41b2d96749f186e7075e995bc10, type: 3}
   m_Name: GameSettings
   m_EditorClassIdentifier: 
-  GridSize: {x: 10, y: 10}
+  GridSize: {x: 2, y: 2}
   DisplayType: 1
   OrthographicTileSize: {x: 1.1, y: 1.1}
   IsometricTileSize: {x: 0.5, y: 0.25}

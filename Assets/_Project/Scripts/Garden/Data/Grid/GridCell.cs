@@ -38,8 +38,8 @@ public class GridCell
         return SoilType switch
         {
             SoilType.Fertile => 1.0f,
-            SoilType.Base => 0.75f,
-            SoilType.Rocky => 0.5f,
+            SoilType.Rocky => 0.75f,
+            SoilType.Unsuitable => 0.5f,
             _ => 1.0f
         };
     }

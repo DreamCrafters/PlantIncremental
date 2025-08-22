@@ -11,6 +11,7 @@ public class GridService : IGridService, IDisposable
 
     private readonly GameSettings _settings;
     private readonly IPlantFactory _plantFactory;
+    private readonly IRewardService _rewardService;
 
     private float _lastInteractionTime;
 
@@ -20,10 +21,11 @@ public class GridService : IGridService, IDisposable
     public float LastInteractionTime => _lastInteractionTime;
 
     [Inject]
-    public GridService(GameSettings settings, IPlantFactory plantFactory)
+    public GridService(GameSettings settings, IPlantFactory plantFactory, IRewardService rewardService)
     {
         _settings = settings;
         _plantFactory = plantFactory;
+        _rewardService = rewardService;
         _grid = new ReactiveProperty<GridCell[,]>(InitializeGrid());
     }
 
@@ -51,7 +53,7 @@ public class GridService : IGridService, IDisposable
 
         if (plantData == null || _settings.ViewPrefab == null) return false;
 
-        var plant = _plantFactory.CreatePlant(plantData, Vector2.zero);
+        var plant = _plantFactory.CreatePlant(plantData);
 
         if (cell.TryPlant(plant))
         {
@@ -79,10 +81,14 @@ public class GridService : IGridService, IDisposable
 
         if (harvestedPlant != null)
         {
+            // Обрабатываем награды через RewardService
+            var reward = _rewardService.ProcessHarvest(harvestedPlant);
+
             _onPlantHarvested.OnNext(new PlantHarvestedEvent
             {
                 Plant = harvestedPlant,
                 Position = position,
+                Reward = reward
             });
 
             _grid.SetValueAndForceNotify(_grid.Value);
@@ -151,19 +157,19 @@ public class GridService : IGridService, IDisposable
         {
             for (int y = 0; y < size.y; y++)
             {
-                grid[x, y] = new GridCell(new Vector2Int(x, y), GenerateSoilType(x, y));
+                grid[x, y] = new GridCell(new Vector2Int(x, y), GenerateSoilType());
             }
         }
 
         return grid;
     }
 
-    private SoilType GenerateSoilType(int x, int y)
+    private SoilType GenerateSoilType()
     {
         var random = UnityEngine.Random.Range(0f, 1f);
         if (random < 0.6f) return SoilType.Fertile;
-        if (random < 0.9f) return SoilType.Base;
-        return SoilType.Rocky;
+        if (random < 0.9f) return SoilType.Rocky;
+        return SoilType.Unsuitable;
     }
 
     private PlantData GetRandomPlantData()
