@@ -87,6 +87,11 @@ public class GridPresenter : IInitializable, IDisposable
         _gridService.OnPlantHarvested
             .Subscribe(evt => OnPlantHarvested(evt))
             .AddTo(_disposables);
+
+        // Подписка на уничтожение растений
+        _gridService.OnPlantDestroyed
+            .Subscribe(evt => OnPlantDestroyed(evt))
+            .AddTo(_disposables);
     }
 
     /// <summary>
@@ -112,10 +117,19 @@ public class GridPresenter : IInitializable, IDisposable
             // Пытаемся посадить растение
             TryPlantAt(position);
         }
-        else if (cell.Plant != null && cell.Plant.State.Value == PlantState.FullyGrown)
+        else if (cell.Plant != null)
         {
-            // Пытаемся собрать урожай
-            TryHarvestAt(position);
+            switch (cell.Plant.State.Value)
+            {
+                case PlantState.FullyGrown:
+                    // Пытаемся собрать урожай
+                    TryHarvestAt(position);
+                    break;
+                case PlantState.Withered:
+                    // Пытаемся уничтожить увядшее растение
+                    TryDestroyAt(position);
+                    break;
+            }
         }
     }
 
@@ -148,6 +162,18 @@ public class GridPresenter : IInitializable, IDisposable
         {
             // Урожай собран успешно - GridService уже отправил событие
             PlayHarvestEffect(position);
+        }
+    }
+
+    /// <summary>
+    /// Пытается уничтожить увядшее растение в указанной позиции
+    /// </summary>
+    private void TryDestroyAt(Vector2Int position)
+    {
+        if (_gridService.TryDestroyAt(position))
+        {
+            // Растение успешно уничтожено - GridService уже отправил событие
+            PlayDestroyEffect(position);
         }
     }
 
@@ -211,6 +237,21 @@ public class GridPresenter : IInitializable, IDisposable
     }
 
     /// <summary>
+    /// Обработка события уничтожения увядшего растения
+    /// </summary>
+    private void OnPlantDestroyed(PlantDestroyedEvent evt)
+    {
+        // Визуальные эффекты уничтожения
+        PlayDestroyEffect(evt.Position);
+
+        // Останавливаем рост (растение уже уничтожено)
+        _growthService.StopGrowing(evt.Plant);
+        
+        // Дополнительно можно показать уведомление игроку
+        // например "Увядшее растение удалено"
+    }
+
+    /// <summary>
     /// Показывает всплывающее окно с наградой
     /// </summary>
     private void ShowRewardPopup(Vector2Int position, RewardResult result)
@@ -244,6 +285,24 @@ public class GridPresenter : IInitializable, IDisposable
         if (_cellViews.TryGetValue(position, out var cellView))
         {
             cellView.PlayHarvestEffect();
+        }
+    }
+
+    /// <summary>
+    /// Воспроизводит эффект уничтожения увядшего растения
+    /// </summary>
+    private void PlayDestroyEffect(Vector2Int position)
+    {
+        if (_cellViews.TryGetValue(position, out var cellView))
+        {
+            cellView.PlayDestroyEffect();
+            
+            // Также проигрываем анимацию уничтожения на самом растении
+            var cell = _gridService.GetCell(position);
+            if (cell?.Plant?.View != null)
+            {
+                cell.Plant.View.PlayDestroyAnimation();
+            }
         }
     }
 }

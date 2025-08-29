@@ -30,6 +30,7 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
     [Header("Effects")]
     [SerializeField] private ParticleSystem _plantEffect;
     [SerializeField] private ParticleSystem _harvestEffect;
+    [SerializeField] private ParticleSystem _destroyEffect;
 
     // Состояние
     private PlantView _currentPlantView;
@@ -252,6 +253,30 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
 
         sequence.Join(colorTween1);
         sequence.Append(colorTween2);
+
+        AddTween(sequence);
+    }
+
+    /// <summary>
+    /// Воспроизводит эффект уничтожения увядшего растения
+    /// </summary>
+    public void PlayDestroyEffect()
+    {
+        if (_destroyEffect != null)
+        {
+            _destroyEffect.Play();
+        }
+
+        if (transform == null || _baseRenderer == null) return;
+
+        // Анимация клетки при уничтожении
+        var sequence = DOTween.Sequence();
+        sequence.SetTarget(transform);
+
+        // Дрожание клетки
+        var shakeTween = transform.DOShakePosition(0.4f, strength: 0.01f, vibrato: 15)
+            .SetTarget(transform);
+        sequence.Append(shakeTween);
 
         AddTween(sequence);
     }

@@ -12,10 +12,6 @@ public class PlantView : MonoBehaviour
     [SerializeField] private SpriteRenderer _spriteRenderer;
     [SerializeField] private Transform _visualTransform;
 
-    [Header("Effects")]
-    [SerializeField] private ParticleSystem _growthParticles;
-    [SerializeField] private ParticleSystem _harvestParticles;
-    [SerializeField] private ParticleSystem _passiveEffectParticles;
 
     [Header("Animation Settings")]
     [SerializeField] private float _growthAnimationDuration = 0.5f;
@@ -73,12 +69,6 @@ public class PlantView : MonoBehaviour
     /// </summary>
     public void PlayGrowthCompleteEffect()
     {
-        // Партиклы роста
-        if (_growthParticles != null)
-        {
-            _growthParticles.Play();
-        }
-
         if (_visualTransform == null || _spriteRenderer == null) return;
 
         // Анимация "радости"
@@ -110,11 +100,6 @@ public class PlantView : MonoBehaviour
     /// </summary>
     public void PlayHarvestAnimation()
     {
-        if (_harvestParticles != null)
-        {
-            _harvestParticles.Play();
-        }
-
         if (_visualTransform == null || _spriteRenderer == null) return;
 
         // Подпрыгивание и исчезновение
@@ -149,15 +134,53 @@ public class PlantView : MonoBehaviour
     }
 
     /// <summary>
+    /// Анимация уничтожения увядшего растения
+    /// </summary>
+    public void PlayDestroyAnimation()
+    {
+        if (_visualTransform == null || _spriteRenderer == null) return;
+
+        // Анимация уничтожения с эффектом разрушения
+        var sequence = DOTween.Sequence();
+        sequence.SetTarget(_visualTransform);
+
+        // Быстрое дрожание
+        var shakeTween = _visualTransform.DOShakePosition(0.3f, strength: 0.1f, vibrato: 20)
+            .SetTarget(_visualTransform);
+
+        // Изменение цвета на красный
+        var colorTween = _spriteRenderer.DOColor(Color.red, 0.2f)
+            .SetTarget(_spriteRenderer);
+
+        // Уменьшение и исчезновение
+        var scaleTween = _visualTransform.DOScale(Vector3.zero, 0.4f)
+            .SetEase(Ease.InExpo)
+            .SetTarget(_visualTransform);
+
+        var fadeTween = _spriteRenderer.DOFade(0, 0.4f)
+            .SetTarget(_spriteRenderer);
+
+        sequence.Append(shakeTween);
+        sequence.Join(colorTween);
+        sequence.Append(scaleTween);
+        sequence.Join(fadeTween);
+
+        sequence.OnComplete(() =>
+        {
+            if (gameObject != null)
+            {
+                gameObject.SetActive(false);
+            }
+        });
+
+        AddTween(sequence);
+    }
+
+    /// <summary>
     /// Показывает визуальный эффект пассивной способности
     /// </summary>
     public void ShowPassiveEffect()
     {
-        if (_passiveEffectParticles != null)
-        {
-            _passiveEffectParticles.Play();
-        }
-
         // Запускаем периодическую анимацию
         if (_passiveEffectCoroutine != null)
         {
@@ -167,22 +190,13 @@ public class PlantView : MonoBehaviour
     }
 
     /// <summary>
-    /// Устанавливает визуал увядшего растения
-    /// </summary>
-    public void SetWitheredVisual()
-    {
-        _isWithered = true;
-
-        // Останавливаем все эффекты
-        StopPassiveEffect();
-    }
-
-    /// <summary>
     /// Воспроизводит эффект увядания
     /// </summary>
     public void PlayWitherEffect()
     {
         if (_visualTransform == null || _spriteRenderer == null) return;
+
+        SetWitheredVisual();
 
         // Анимация увядания
         var sequence = DOTween.Sequence();
@@ -197,15 +211,6 @@ public class PlantView : MonoBehaviour
         sequence.Append(rotateTween);
         sequence.Join(scaleTween);
 
-        // Активируем оверлей
-        sequence.OnComplete(() =>
-        {
-            if (this != null)
-            {
-                SetWitheredVisual();
-            }
-        });
-
         AddTween(sequence);
     }
 
@@ -218,11 +223,6 @@ public class PlantView : MonoBehaviour
         {
             StopCoroutine(_passiveEffectCoroutine);
             _passiveEffectCoroutine = null;
-        }
-
-        if (_passiveEffectParticles != null)
-        {
-            _passiveEffectParticles.Stop();
         }
 
         if (_visualTransform == null) return;
@@ -242,17 +242,9 @@ public class PlantView : MonoBehaviour
 
         if (active)
         {
-            _spriteRenderer.color = _originalColor * 1.2f;
-            var scaleTween = _visualTransform.DOScale(_originalScale * 1.05f, 0.1f)
-                .SetTarget(_visualTransform);
-            AddTween(scaleTween);
         }
         else
         {
-            _spriteRenderer.color = _originalColor;
-            var scaleTween = _visualTransform.DOScale(_originalScale, 0.1f)
-                .SetTarget(_visualTransform);
-            AddTween(scaleTween);
         }
     }
 
@@ -284,6 +276,17 @@ public class PlantView : MonoBehaviour
         DOTween.Kill(transform);
         if (_spriteRenderer != null) DOTween.Kill(_spriteRenderer);
         if (_visualTransform != null) DOTween.Kill(_visualTransform);
+    }
+
+    /// <summary>
+    /// Устанавливает визуал увядшего растения
+    /// </summary>
+    private void SetWitheredVisual()
+    {
+        _isWithered = true;
+
+        // Останавливаем все эффекты
+        StopPassiveEffect();
     }
 
     /// <summary>

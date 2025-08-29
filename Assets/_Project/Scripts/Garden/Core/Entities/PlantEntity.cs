@@ -183,12 +183,6 @@ public class PlantEntity : IPlantEntity, IDisposable
         {
             _view.UpdateSprite(Data.GrowthStages[stageIndex].Sprite);
         }
-
-        // Обновляем цвет в зависимости от состояния
-        if (_state.Value == PlantState.Withered)
-        {
-            _view.SetWitheredVisual();
-        }
     }
 
     private int GetSpriteIndexForState(PlantState state)
@@ -216,8 +210,8 @@ public class PlantEntity : IPlantEntity, IDisposable
         if (_isWithering) return;
         _isWithering = true;
 
-        // Проверяем шанс увядания каждые 1 секунд (на главном потоке)
-        Observable.Interval(TimeSpan.FromSeconds(1))
+        // Проверяем шанс увядания каждые 2 секунд (на главном потоке)
+        Observable.Interval(TimeSpan.FromSeconds(2))
             .ObserveOnMainThread()
             .TakeWhile(_ => _state.Value == PlantState.FullyGrown)
             .Subscribe(_ => CheckWither())
@@ -235,7 +229,7 @@ public class PlantEntity : IPlantEntity, IDisposable
 
     private void InitializeWitherChance()
     {
-        _witherChance = _gameSettings.WitherChancePerSecond;
+        _witherChance = _gameSettings.WitherChancePerTwoSeconds;
     }
 
     private int CalculateCoinsReward()

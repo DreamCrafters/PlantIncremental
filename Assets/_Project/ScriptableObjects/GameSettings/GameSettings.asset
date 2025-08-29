@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7891e41b2d96749f186e7075e995bc10, type: 3}
   m_Name: GameSettings
   m_EditorClassIdentifier: 
-  GridSize: {x: 2, y: 2}
+  GridSize: {x: 3, y: 3}
   DisplayType: 1
   OrthographicTileSize: {x: 1.1, y: 1.1}
   IsometricTileSize: {x: 0.5, y: 0.25}
@@ -21,6 +21,7 @@ MonoBehaviour:
   AutoSaveInterval: 30
   DayDuration: 180
   ViewPrefab: {fileID: 2957457302213695260, guid: d55f61d889a764b208ee005ba3f3b143, type: 3}
+  WitherChancePerTwoSeconds: 1
   AvailablePlants:
   - {fileID: 11400000, guid: a7789895466de4497ada380bb1bed776, type: 2}
   RarityChances:

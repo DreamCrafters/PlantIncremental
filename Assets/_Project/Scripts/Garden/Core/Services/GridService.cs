@@ -7,6 +7,7 @@ public class GridService : IGridService, IDisposable
 {
     private readonly ReactiveProperty<GridCell[,]> _grid;
     private readonly Subject<PlantHarvestedEvent> _onPlantHarvested = new();
+    private readonly Subject<PlantDestroyedEvent> _onPlantDestroyed = new();
     private readonly CompositeDisposable _disposables = new();
 
     private readonly GameSettings _settings;
@@ -17,6 +18,7 @@ public class GridService : IGridService, IDisposable
 
     public IReadOnlyReactiveProperty<GridCell[,]> Grid => _grid;
     public IObservable<PlantHarvestedEvent> OnPlantHarvested => _onPlantHarvested;
+    public IObservable<PlantDestroyedEvent> OnPlantDestroyed => _onPlantDestroyed;
     public float InteractionCooldown => _settings.InteractionCooldown;
     public float LastInteractionTime => _lastInteractionTime;
 
@@ -33,6 +35,7 @@ public class GridService : IGridService, IDisposable
     {
         _disposables?.Dispose();
         _onPlantHarvested?.Dispose();
+        _onPlantDestroyed?.Dispose();
     }
 
     public GridCell GetCell(Vector2Int position)
@@ -89,6 +92,36 @@ public class GridService : IGridService, IDisposable
                 Plant = harvestedPlant,
                 Position = position,
                 Reward = reward
+            });
+
+            _grid.SetValueAndForceNotify(_grid.Value);
+            _lastInteractionTime = Time.time;
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool TryDestroyAt(Vector2Int position)
+    {
+        if (IsAbleToInteract() == false) return false;
+
+        var cell = GetCell(position);
+
+        if (cell == null || cell.IsEmpty) return false;
+
+        var plant = cell.Plant;
+
+        if (CanDestroy(plant) == false) return false;
+
+        var destroyedPlant = cell.Harvest(); // Используем Harvest() для удаления из ячейки
+
+        if (destroyedPlant != null)
+        {
+            _onPlantDestroyed.OnNext(new PlantDestroyedEvent
+            {
+                Plant = destroyedPlant,
+                Position = position
             });
 
             _grid.SetValueAndForceNotify(_grid.Value);
@@ -223,6 +256,11 @@ public class GridService : IGridService, IDisposable
     private bool CanHarvest(IPlantEntity plant)
     {
         return plant.State.Value == PlantState.FullyGrown;
+    }
+
+    private bool CanDestroy(IPlantEntity plant)
+    {
+        return plant.State.Value == PlantState.Withered;
     }
 
     private bool IsValidPosition(Vector2Int position)
