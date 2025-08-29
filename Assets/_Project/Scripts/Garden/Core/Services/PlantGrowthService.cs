@@ -25,11 +25,6 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
     public PlantGrowthService(IGridService gridService)
     {
         _gridService = gridService;
-        
-        // Обновляем модификаторы роста каждые 5 секунд
-        Observable.Interval(TimeSpan.FromSeconds(5))
-            .Subscribe(_ => UpdateAllGrowthModifiers())
-            .AddTo(_disposables);
     }
     
     /// <summary>
@@ -83,30 +78,6 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
         if (plant is PlantEntity entity)
         {
             entity.StopGrowing();
-        }
-    }
-    
-    /// <summary>
-    /// Применяет временный бонус к росту всех растений
-    /// </summary>
-    public void ApplyTemporaryGrowthBoost(float multiplier, float duration)
-    {
-        Observable.Timer(TimeSpan.FromSeconds(duration))
-            .Subscribe(_ =>
-            {
-                // Сбрасываем бонус
-                UpdateAllGrowthModifiers();
-            })
-            .AddTo(_disposables);
-        
-        // Применяем бонус
-        foreach (var plant in _growingPlants.Keys)
-        {
-            if (plant is PlantEntity entity)
-            {
-                var currentModifier = _growthModifiers[plant];
-                entity.ApplyGrowthModifier(currentModifier * multiplier);
-            }
         }
     }
     
@@ -197,32 +168,6 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
     }
     
     /// <summary>
-    /// Обновляет модификаторы роста для всех растущих растений
-    /// </summary>
-    private void UpdateAllGrowthModifiers()
-    {
-        foreach (var plant in _growingPlants.Keys.ToList())
-        {
-            if (plant.State.Value == PlantState.FullyGrown || 
-                plant.State.Value == PlantState.Withered)
-                continue;
-            
-            var newModifier = CalculateGrowthModifier(plant);
-            
-            // Обновляем только если модификатор изменился значительно
-            if (Mathf.Abs(_growthModifiers[plant] - newModifier) > 0.01f)
-            {
-                _growthModifiers[plant] = newModifier;
-                
-                if (plant is PlantEntity entity)
-                {
-                    entity.ApplyGrowthModifier(newModifier);
-                }
-            }
-        }
-    }
-    
-    /// <summary>
     /// Находит клетку сетки, содержащую указанное растение
     /// </summary>
     private GridCell FindCellWithPlant(IPlantEntity plant)
@@ -256,9 +201,6 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
         {
             entity.ActivatePassiveAbility();
         }
-        
-        // Обновляем модификаторы для соседних растений
-        UpdateNeighborModifiers(plant);
     }
     
     /// <summary>
@@ -267,34 +209,6 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
     private void OnPlantWithered(IPlantEntity plant)
     {
         StopGrowing(plant);
-        
-        // Убираем эффекты от этого растения
-        UpdateNeighborModifiers(plant);
-    }
-    
-    /// <summary>
-    /// Обновляет модификаторы для растений рядом с указанным
-    /// </summary>
-    private void UpdateNeighborModifiers(IPlantEntity plant)
-    {
-        var cell = FindCellWithPlant(plant);
-        if (cell == null) return;
-        
-        var neighbors = _gridService.GetNeighbors(cell.Position);
-        
-        foreach (var neighbor in neighbors)
-        {
-            if (neighbor.IsEmpty == false && _growingPlants.ContainsKey(neighbor.Plant))
-            {
-                var newModifier = CalculateGrowthModifier(neighbor.Plant);
-                _growthModifiers[neighbor.Plant] = newModifier;
-                
-                if (neighbor.Plant is PlantEntity entity)
-                {
-                    entity.ApplyGrowthModifier(newModifier);
-                }
-            }
-        }
     }
     
     /// <summary>

@@ -14,6 +14,7 @@ public static class GardenContainerExtensions
         builder.Register<IRewardService, RewardService>(Lifetime.Singleton);
         builder.Register<IGridService, GridService>(Lifetime.Singleton);
         builder.Register<IPlantGrowthService, PlantGrowthService>(Lifetime.Singleton);
+        builder.Register<IWateringSystem, WateringSystem>(Lifetime.Singleton);
 
         // Регистрация представлений
         builder.RegisterInstance(coinsView).AsSelf();

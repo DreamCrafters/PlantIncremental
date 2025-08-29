@@ -14,6 +14,7 @@ public class GridPresenter : IInitializable, IDisposable
     private readonly GridView _gridView;
     private readonly IPlantGrowthService _growthService;
     private readonly IEconomyService _economyService;
+    private readonly IWateringSystem _wateringSystem;
     private readonly GameSettings _settings;
 
     private readonly CompositeDisposable _disposables = new();
@@ -24,12 +25,14 @@ public class GridPresenter : IInitializable, IDisposable
         IGridService gridService,
         IPlantGrowthService growthService,
         IEconomyService economyService,
+        IWateringSystem wateringSystem,
         GridView gridView,
         GameSettings settings)
     {
         _gridService = gridService;
         _growthService = growthService;
         _economyService = economyService;
+        _wateringSystem = wateringSystem;
         _gridView = gridView;
         _settings = settings;
     }
@@ -92,6 +95,11 @@ public class GridPresenter : IInitializable, IDisposable
         _gridService.OnPlantDestroyed
             .Subscribe(evt => OnPlantDestroyed(evt))
             .AddTo(_disposables);
+            
+        // Подписка на завершение полива из WateringSystem
+        _wateringSystem.OnPlantWatered
+            .Subscribe(plant => OnPlantWatered(plant))
+            .AddTo(_disposables);
     }
 
     /// <summary>
@@ -101,6 +109,20 @@ public class GridPresenter : IInitializable, IDisposable
     {
         cellView.OnClick
             .Subscribe(_ => HandleCellClick(position))
+            .AddTo(_disposables);
+            
+        // Подписываемся на события полива
+        cellView.OnWateringStart
+            .Subscribe(plant => _wateringSystem.StartWatering(plant))
+            .AddTo(_disposables);
+            
+        cellView.OnWateringEnd
+            .Subscribe(plant => _wateringSystem.StopWatering(plant))
+            .AddTo(_disposables);
+            
+        // Подписываемся на завершение долгого нажатия (мгновенный полив)
+        cellView.OnWateringComplete
+            .Subscribe(plant => _wateringSystem.StartWatering(plant))
             .AddTo(_disposables);
     }
 
@@ -141,12 +163,12 @@ public class GridPresenter : IInitializable, IDisposable
         // Пытаемся посадить
         if (_gridService.TryPlantAt(position))
         {
-            // Запускаем рост
-            var cell = _gridService.GetCell(position);
-            if (cell?.Plant != null)
-            {
-                _growthService.StartGrowing(cell.Plant);
-            }
+            // НЕ запускаем автоматический рост - растение должно быть полито сначала
+            // var cell = _gridService.GetCell(position);
+            // if (cell?.Plant != null)
+            // {
+            //     _growthService.StartGrowing(cell.Plant);
+            // }
 
             // Визуальный эффект посадки
             PlayPlantEffect(position);
@@ -206,15 +228,15 @@ public class GridPresenter : IInitializable, IDisposable
         cellView.UpdateVisual(cell);
         cellView.ShowPlant(cell.IsEmpty == false);
         
-        // Если в клетке есть растение, привязываем его view к клетке
+        // Если в клетке есть растение, привязываем его entity к клетке
         if (cell.IsEmpty == false && cell.Plant != null)
         {
-            cellView.SetPlantView(cell.Plant.View);
+            cellView.SetPlantEntity(cell.Plant);
         }
         else
         {
             // Если клетка пустая, очищаем растение
-            cellView.SetPlantView(null);
+            cellView.SetPlantEntity(null);
         }
     }
 
@@ -263,6 +285,18 @@ public class GridPresenter : IInitializable, IDisposable
                 result.Coins,
                 result.Petals.Amount
             );
+        }
+    }
+
+    /// <summary>
+    /// Обработка события завершения полива растения
+    /// </summary>
+    private void OnPlantWatered(IPlantEntity plant)
+    {
+        // Если это был первый полив, запускаем рост растения
+        if (plant.State.Value == PlantState.Seed)
+        {
+            _growthService.StartGrowing(plant);
         }
     }
 

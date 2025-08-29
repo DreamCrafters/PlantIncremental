@@ -250,7 +250,7 @@ public class GridService : IGridService, IDisposable
         }
 
         // Возвращаем последнюю редкость если ничего не выбралось (защита от ошибок конфигурации)
-        return rarityChances[rarityChances.Length - 1].Rarity;
+        return rarityChances[^1].Rarity;
     }
 
     private bool CanHarvest(IPlantEntity plant)

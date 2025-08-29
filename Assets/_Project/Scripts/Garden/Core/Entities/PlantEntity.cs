@@ -8,7 +8,8 @@ using UnityEngine;
 public class PlantEntity : IPlantEntity, IDisposable
 {
     private readonly ReactiveProperty<float> _growthProgress = new(0f);
-    private readonly ReactiveProperty<PlantState> _state = new(PlantState.Seed);
+    private readonly ReactiveProperty<PlantState> _state = new(PlantState.New);
+    private readonly ReactiveProperty<bool> _isWaitingForWater = new(true);
     private readonly CompositeDisposable _disposables = new();
 
     private readonly GameSettings _gameSettings;
@@ -17,35 +18,71 @@ public class PlantEntity : IPlantEntity, IDisposable
     // Кэшируем для оптимизации
     private float _currentGrowthTime;
     private float _growthSpeedModifier = 1f;
-    private bool _isWithering;
-    private float _witherChance;
+
+    // Система полива
+    private float _lastWateringTime;
+    private IDisposable _witherTimer;
+    private IDisposable _growthTimer; // Таймер для отслеживания роста
+
+    private const float WITHER_TIMEOUT = 10f; // 10 секунд до увядания без полива
 
     public PlantData Data { get; }
     public IReadOnlyReactiveProperty<float> GrowthProgress => _growthProgress;
     public IReadOnlyReactiveProperty<PlantState> State => _state;
     public PlantView View => _view;
+    public bool IsWaitingForWater => _isWaitingForWater.Value;
     public bool IsHarvestable => _state.Value == PlantState.FullyGrown;
     public bool IsWithered => _state.Value == PlantState.Withered;
     public Vector2 Position => _view.transform.position;
+
+    // Новые свойства для полива
+    public float TimeSinceLastWatering => Time.time - _lastWateringTime;
 
     public PlantEntity(PlantData data, PlantView view, GameSettings gameSettings)
     {
         Data = data;
         _view = view;
         _gameSettings = gameSettings;
+        _lastWateringTime = Time.time;
 
-        InitializeWitherChance();
         SubscribeToStateChanges();
         UpdateVisual();
+
+        // Запускаем таймер увядания с самого начала
+        StartWitherTimer();
     }
 
     public void Dispose()
     {
+        _witherTimer?.Dispose();
+        _growthTimer?.Dispose();
         _disposables?.Dispose();
         if (_view != null)
         {
             UnityEngine.Object.Destroy(_view.gameObject);
         }
+    }
+
+    /// <summary>
+    /// Поливает растение, позволяя ему продолжить рост
+    /// </summary>
+    public void Water()
+    {
+        if (!_isWaitingForWater.Value) return;
+
+        _lastWateringTime = Time.time;
+        _isWaitingForWater.Value = false;
+
+        // Останавливаем таймер увядания
+        _witherTimer?.Dispose();
+        _witherTimer = null;
+
+        // Скрываем эффект ожидания полива
+        _view.HideWateringIcon();
+
+        _state.Value += 1;
+        UpdateVisualStage();
+        StartGrowing(_growthSpeedModifier);
     }
 
     /// <summary>
@@ -57,20 +94,14 @@ public class PlantEntity : IPlantEntity, IDisposable
 
         _growthSpeedModifier = growthModifier;
 
+        // Останавливаем предыдущий рост, если он был
+        _growthTimer?.Dispose();
+
         // Подписываемся на каждую секунду для обновления роста (на главном потоке)
-        Observable.Interval(TimeSpan.FromSeconds(1))
+        _growthTimer = Observable.Interval(TimeSpan.FromSeconds(1))
             .ObserveOnMainThread()
             .TakeWhile(_ => _state.Value != PlantState.FullyGrown && _state.Value != PlantState.Withered)
-            .Subscribe(_ => UpdateGrowth())
-            .AddTo(_disposables);
-    }
-
-    /// <summary>
-    /// Применяет модификатор скорости роста (от соседних растений или почвы)
-    /// </summary>
-    public void ApplyGrowthModifier(float modifier)
-    {
-        _growthSpeedModifier = Mathf.Max(0f, modifier);
+            .Subscribe(_ => UpdateGrowth());
     }
 
     /// <summary>
@@ -103,11 +134,6 @@ public class PlantEntity : IPlantEntity, IDisposable
     {
         if (_state.Value != PlantState.FullyGrown) return;
 
-        // Начинаем проверку на увядание
-        StartWitherCheck();
-
-        // Активируем способность в зависимости от типа
-        // Это будет расширено в PlantAbilitySystem
         _view.ShowPassiveEffect();
     }
 
@@ -116,45 +142,66 @@ public class PlantEntity : IPlantEntity, IDisposable
     /// </summary>
     public void StopGrowing()
     {
-        // Отписываемся от обновлений роста
-        _disposables.Clear();
+        // Останавливаем таймер роста
+        _growthTimer?.Dispose();
+        _growthTimer = null;
     }
 
     private void UpdateGrowth()
     {
-        if (_growthSpeedModifier <= 0f) return;
+        if (_growthSpeedModifier <= 0f || _isWaitingForWater.Value)
+        {
+            return;
+        }
 
         // Увеличиваем прогресс роста
         var growthIncrement = 1f / Data.GrowthTime * _growthSpeedModifier;
         _currentGrowthTime += growthIncrement;
         _growthProgress.Value = Mathf.Clamp01(_currentGrowthTime);
 
-        // Обновляем состояние в зависимости от прогресса
-        UpdateStateByProgress();
+        // Проверяем, нужен ли полив на новой стадии
+        CheckForWateringNeeds();
     }
 
-    private void UpdateStateByProgress()
+    private void CheckForWateringNeeds()
     {
         var progress = _growthProgress.Value;
-        // Быстрый путь: если уже полностью выросло
-        if (progress >= 1f)
-        {
-            if (_state.Value != PlantState.FullyGrown)
-                _state.Value = PlantState.FullyGrown;
-            return;
-        }
+        var newStage = GetGrowthStageFromProgress(progress);
 
-        var newState = progress switch
+        // Если мы перешли на новую стадию и это не финальная стадия
+        if (newStage > _state.Value)
         {
-            < 0.5f => PlantState.Seed,
-            < 1f => PlantState.Growing,
-            _ => PlantState.FullyGrown
-        };
-
-        if (_state.Value != newState)
-        {
-            _state.Value = newState;
+            RequireWatering();
         }
+    }
+
+    private PlantState GetGrowthStageFromProgress(float progress)
+    {
+        if (progress < 0.5) return PlantState.Seed;
+        if (progress < 1) return PlantState.Growing;
+        return PlantState.FullyGrown;
+    }
+
+    private void RequireWatering()
+    {
+        _isWaitingForWater.Value = true;
+
+        // Запускаем таймер увядания
+        StartWitherTimer();
+    }
+
+    private void StartWitherTimer()
+    {
+        _witherTimer?.Dispose();
+
+        _witherTimer = Observable.Timer(TimeSpan.FromSeconds(WITHER_TIMEOUT))
+            .Subscribe(_ =>
+            {
+                if (_isWaitingForWater.Value)
+                {
+                    _state.Value = PlantState.Withered;
+                }
+            });
     }
 
     private void SubscribeToStateChanges()
@@ -163,38 +210,52 @@ public class PlantEntity : IPlantEntity, IDisposable
         {
             UpdateVisual();
 
-            if (state == PlantState.FullyGrown)
+            // Обновляем иконки в зависимости от состояния
+            switch (state)
             {
-                OnFullyGrown();
+                case PlantState.FullyGrown:
+                    OnFullyGrown();
+                    break;
+
+                case PlantState.Withered:
+                    OnWithered();
+                    break;
+
+                case PlantState.Growing:
+                case PlantState.Seed:
+                    // Убираем специальные иконки только если действительно не ждем полив
+                    if (!_isWaitingForWater.Value)
+                    {
+                        _view.HideWateringIcon();
+                    }
+                    break;
             }
-            else if (state == PlantState.Withered)
+        }).AddTo(_disposables);
+
+        _isWaitingForWater.Subscribe(isWaiting =>
+        {
+            if (isWaiting)
             {
-                OnWithered();
+                OnWaitingForWater();
             }
         }).AddTo(_disposables);
     }
 
     private void UpdateVisual()
     {
-        if (_view == null || Data.GrowthStages == null) return;
-
-        var stageIndex = GetSpriteIndexForState(_state.Value);
-        if (stageIndex < Data.GrowthStages.Length)
-        {
-            _view.UpdateSprite(Data.GrowthStages[stageIndex].Sprite);
-        }
+        // Обновляем визуал только на основе текущей визуальной стадии, а не состояния
+        UpdateVisualStage();
     }
 
-    private int GetSpriteIndexForState(PlantState state)
+    private void UpdateVisualStage()
     {
-        return (int)state;
+        if (_view == null || Data.GrowthStages == null) return;
+
+        _view.UpdateSprite(Data.GrowthStages[(int)_state.Value].Sprite);
     }
 
     private void OnFullyGrown()
     {
-        // Визуальный эффект созревания
-        _view.PlayGrowthCompleteEffect();
-
         // Активируем пассивную способность
         ActivatePassiveAbility();
     }
@@ -203,33 +264,16 @@ public class PlantEntity : IPlantEntity, IDisposable
     {
         _view.PlayWitherEffect();
         StopGrowing();
+
+        // Останавливаем таймер увядания
+        _witherTimer?.Dispose();
+        _witherTimer = null;
     }
 
-    private void StartWitherCheck()
+    private void OnWaitingForWater()
     {
-        if (_isWithering) return;
-        _isWithering = true;
-
-        // Проверяем шанс увядания каждые 2 секунд (на главном потоке)
-        Observable.Interval(TimeSpan.FromSeconds(2))
-            .ObserveOnMainThread()
-            .TakeWhile(_ => _state.Value == PlantState.FullyGrown)
-            .Subscribe(_ => CheckWither())
-            .AddTo(_disposables);
-    }
-
-    private void CheckWither()
-    {
-        var random = UnityEngine.Random.Range(0f, 1f);
-        if (random < _witherChance)
-        {
-            _state.Value = PlantState.Withered;
-        }
-    }
-
-    private void InitializeWitherChance()
-    {
-        _witherChance = _gameSettings.WitherChancePerTwoSeconds;
+        // Показываем иконку полива
+        _view.ShowWateringIcon();
     }
 
     private int CalculateCoinsReward()

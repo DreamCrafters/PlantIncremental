@@ -8,13 +8,15 @@ using DG.Tweening;
 /// </summary>
 public class PlantView : MonoBehaviour
 {
+    private static readonly WaitForSeconds _waitForSeconds1 = new(1f);
+
     [Header("Components")]
     [SerializeField] private SpriteRenderer _spriteRenderer;
     [SerializeField] private Transform _visualTransform;
-
+    [SerializeField] private GameObject _wateringIcon; // Иконка полива
+    [SerializeField] private GameObject _witheredIcon; // Иконка увядшего растения
 
     [Header("Animation Settings")]
-    [SerializeField] private float _growthAnimationDuration = 0.5f;
     [SerializeField] private float _harvestAnimationDuration = 0.3f;
 
     // Кэшированные компоненты
@@ -34,6 +36,17 @@ public class PlantView : MonoBehaviour
         CacheComponents();
         _originalScale = transform.localScale;
         _originalColor = _spriteRenderer.color;
+
+        // Скрываем иконки по умолчанию
+        if (_wateringIcon != null)
+        {
+            _wateringIcon.SetActive(false);
+        }
+
+        if (_witheredIcon != null)
+        {
+            _witheredIcon.SetActive(false);
+        }
     }
 
     private void OnDestroy()
@@ -51,7 +64,17 @@ public class PlantView : MonoBehaviour
     /// </summary>
     public void UpdateSprite(Sprite newSprite)
     {
-        if (newSprite == null || _spriteRenderer.sprite == newSprite) return;
+        // Если newSprite == null, скрываем растение
+        if (newSprite == null)
+        {
+            if (_spriteRenderer != null)
+            {
+                _spriteRenderer.sprite = null;
+            }
+            return;
+        }
+
+        if (_spriteRenderer.sprite == newSprite) return;
 
         if (_isAnimating == false)
         {
@@ -62,37 +85,6 @@ public class PlantView : MonoBehaviour
             // Если идет анимация, просто меняем спрайт
             _spriteRenderer.sprite = newSprite;
         }
-    }
-
-    /// <summary>
-    /// Воспроизводит эффект завершения роста
-    /// </summary>
-    public void PlayGrowthCompleteEffect()
-    {
-        if (_visualTransform == null || _spriteRenderer == null) return;
-
-        // Анимация "радости"
-        var sequence = DOTween.Sequence();
-        sequence.SetTarget(_visualTransform);
-
-        // Пульсация масштаба
-        var scale1 = _visualTransform.DOScale(_originalScale * 1.3f, 0.3f)
-            .SetEase(Ease.OutElastic)
-            .SetTarget(_visualTransform);
-        var scale2 = _visualTransform.DOScale(_originalScale, 0.2f)
-            .SetTarget(_visualTransform);
-
-        sequence.Join(scale1);
-        sequence.Append(scale2);
-
-        // Вспышка цвета
-        var color1 = _spriteRenderer.DOColor(Color.white, 0.1f).SetTarget(_spriteRenderer);
-        var color2 = _spriteRenderer.DOColor(_originalColor, 0.3f).SetTarget(_spriteRenderer);
-
-        sequence.Join(color1);
-        sequence.Append(color2);
-
-        AddTween(sequence);
     }
 
     /// <summary>
@@ -198,6 +190,9 @@ public class PlantView : MonoBehaviour
 
         SetWitheredVisual();
 
+        // Показываем иконку увядшего растения
+        ShowWitheredIcon();
+
         // Анимация увядания
         var sequence = DOTween.Sequence();
         sequence.SetTarget(_visualTransform);
@@ -212,6 +207,53 @@ public class PlantView : MonoBehaviour
         sequence.Join(scaleTween);
 
         AddTween(sequence);
+    }
+
+    /// <summary>
+    /// Показывает иконку полива
+    /// </summary>
+    public void ShowWateringIcon()
+    {
+        if (_wateringIcon != null)
+        {
+            _wateringIcon.SetActive(true);
+        }
+    }
+
+    /// <summary>
+    /// Скрывает иконку полива
+    /// </summary>
+    public void HideWateringIcon()
+    {
+        if (_wateringIcon != null)
+        {
+            _wateringIcon.SetActive(false);
+        }
+    }
+
+    /// <summary>
+    /// Показывает иконку увядшего растения
+    /// </summary>
+    public void ShowWitheredIcon()
+    {
+        if (_witheredIcon != null)
+        {
+            _witheredIcon.SetActive(true);
+        }
+
+        // Скрываем иконку полива, если она была видна
+        HideWateringIcon();
+    }
+
+    /// <summary>
+    /// Скрывает иконку увядшего растения
+    /// </summary>
+    public void HideWitheredIcon()
+    {
+        if (_witheredIcon != null)
+        {
+            _witheredIcon.SetActive(false);
+        }
     }
 
     /// <summary>
@@ -231,6 +273,13 @@ public class PlantView : MonoBehaviour
         var scaleTween = _visualTransform.DOScale(_originalScale, 0.3f)
             .SetTarget(_visualTransform);
         AddTween(scaleTween);
+    }
+
+    /// <summary>
+    /// Показывает эффект успешного полива (минимальный эффект)
+    /// </summary>
+    public void PlayWaterSuccessEffect()
+    {
     }
 
     /// <summary>
@@ -332,42 +381,9 @@ public class PlantView : MonoBehaviour
     /// </summary>
     private void AnimateSpriteChange(Sprite newSprite)
     {
-        if (_visualTransform == null || _spriteRenderer == null) return;
+        if (_spriteRenderer == null) return;
 
-        _isAnimating = true;
-
-        // Уменьшаем масштаб
-        var scaleTween1 = _visualTransform.DOScale(_originalScale * 0.8f, _growthAnimationDuration * 0.3f)
-            .SetTarget(_visualTransform)
-            .OnComplete(() =>
-            {
-                if (_spriteRenderer != null && newSprite != null)
-                {
-                    // Меняем спрайт
-                    _spriteRenderer.sprite = newSprite;
-
-                    if (_visualTransform != null)
-                    {
-                        // Возвращаем масштаб с эффектом bounce
-                        var scaleTween2 = _visualTransform.DOScale(_originalScale * 1.1f, _growthAnimationDuration * 0.4f)
-                            .SetEase(Ease.OutBack)
-                            .SetTarget(_visualTransform)
-                            .OnComplete(() =>
-                            {
-                                if (_visualTransform != null)
-                                {
-                                    var scaleTween3 = _visualTransform.DOScale(_originalScale, _growthAnimationDuration * 0.3f)
-                                        .SetEase(Ease.OutBounce)
-                                        .SetTarget(_visualTransform)
-                                        .OnComplete(() => _isAnimating = false);
-                                    AddTween(scaleTween3);
-                                }
-                            });
-                        AddTween(scaleTween2);
-                    }
-                }
-            });
-        AddTween(scaleTween1);
+        _spriteRenderer.sprite = newSprite;
     }
 
     /// <summary>
@@ -383,7 +399,7 @@ public class PlantView : MonoBehaviour
                 .SetTarget(_visualTransform);
             AddTween(scaleTween1);
 
-            yield return new WaitForSeconds(1f);
+            yield return _waitForSeconds1;
 
             if (_visualTransform == null) break;
 
@@ -392,7 +408,7 @@ public class PlantView : MonoBehaviour
                 .SetTarget(_visualTransform);
             AddTween(scaleTween2);
 
-            yield return new WaitForSeconds(1f);
+            yield return _waitForSeconds1;
 
             // Добавляем легкое свечение каждые 3 секунды
             if (Random.Range(0f, 1f) > 0.5f && _spriteRenderer != null)
@@ -411,7 +427,7 @@ public class PlantView : MonoBehaviour
                 AddTween(glowSequence);
             }
 
-            yield return new WaitForSeconds(1f);
+            yield return _waitForSeconds1;
         }
     }
 }

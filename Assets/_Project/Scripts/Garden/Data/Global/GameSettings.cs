@@ -26,6 +26,7 @@ public class GameSettings : ScriptableObject
     [Header("Plants")]
     public PlantView ViewPrefab;
     [Range(0, 1)] public float WitherChancePerTwoSeconds = 0.01f;
+    [Min(0)] public float WateringDuration = 0.5f;
     public PlantData[] AvailablePlants;
     [Tooltip("Шанс выпадения растений по редкости (от 0 до 1). В инспекторе отображаются нормализованные значения")]
     public PlantRarityChance[] RarityChances = new PlantRarityChance[]

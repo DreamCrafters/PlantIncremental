@@ -6,12 +6,15 @@ using UnityEngine.EventSystems;
 using DG.Tweening;
 
 /// <summary>
-/// Визуальное представление одной клетки игровой сетки
+/// Визуальное представление одной клетки игровой сетки с поддержкой полива
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer))]
-public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
+public class GridCellView : MonoBehaviour, IPointerDownHandler, IPointerEnterHandler, IPointerExitHandler
 {
     private readonly Subject<Unit> _onClick = new();
+    private readonly Subject<IPlantEntity> _onWateringStart = new();
+    private readonly Subject<IPlantEntity> _onWateringEnd = new();
+    private readonly Subject<IPlantEntity> _onWateringComplete = new();
     private readonly List<Tween> _activeTweens = new();
 
     [Header("Visual Components")]
@@ -35,27 +38,47 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
     // Состояние
     private PlantView _currentPlantView;
     private SoilType _currentSoilType;
+    private IPlantEntity _currentPlantEntity;
+    private LongPressHandler _longPressHandler;
 
     // Кэш
     private Vector3 _originalScale;
 
     public IObservable<Unit> OnClick => _onClick;
+    public IObservable<IPlantEntity> OnWateringStart => _onWateringStart;
+    public IObservable<IPlantEntity> OnWateringEnd => _onWateringEnd;
+    public IObservable<IPlantEntity> OnWateringComplete => _onWateringComplete;
 
     private void Awake()
     {
         _originalScale = transform.localScale;
+        
+        // Добавляем компонент для обработки долгих нажатий
+        _longPressHandler = gameObject.GetComponent<LongPressHandler>();
+        if (_longPressHandler == null)
+        {
+            _longPressHandler = gameObject.AddComponent<LongPressHandler>();
+        }
+        
+        // Подписываемся на события долгого нажатия
+        _longPressHandler.OnLongPressStart.Subscribe(_ => OnLongPressStart()).AddTo(gameObject);
+        _longPressHandler.OnLongPressEnd.Subscribe(_ => OnLongPressEnd()).AddTo(gameObject);
+        _longPressHandler.OnLongPressComplete.Subscribe(_ => OnLongPressComplete()).AddTo(gameObject);
     }
 
     private void OnDestroy()
     {
         KillAllTweens();
         _onClick?.Dispose();
+        _onWateringStart?.Dispose();
+        _onWateringEnd?.Dispose();
+        _onWateringComplete?.Dispose();
     }
 
     /// <summary>
     /// Обработка клика по клетке
     /// </summary>
-    public void OnPointerClick(PointerEventData eventData)
+    public void OnPointerDown(PointerEventData eventData)
     {
         if (eventData.button == PointerEventData.InputButton.Left)
         {
@@ -101,6 +124,39 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
         if (_currentPlantView != null)
         {
             _currentPlantView.SetHighlight(false);
+        }
+    }
+
+    /// <summary>
+    /// Обработка начала долгого нажатия
+    /// </summary>
+    private void OnLongPressStart()
+    {
+        if (_currentPlantEntity != null && _currentPlantEntity.IsWaitingForWater)
+        {
+            _onWateringStart.OnNext(_currentPlantEntity);
+        }
+    }
+
+    /// <summary>
+    /// Обработка окончания долгого нажатия (отпущена кнопка)
+    /// </summary>
+    private void OnLongPressEnd()
+    {
+        if (_currentPlantEntity != null)
+        {
+            _onWateringEnd.OnNext(_currentPlantEntity);
+        }
+    }
+
+    /// <summary>
+    /// Обработка завершения долгого нажатия (прошло нужное время)
+    /// </summary>
+    private void OnLongPressComplete()
+    {
+        if (_currentPlantEntity != null && _currentPlantEntity.IsWaitingForWater)
+        {
+            _onWateringComplete.OnNext(_currentPlantEntity);
         }
     }
 
@@ -188,6 +244,22 @@ public class GridCellView : MonoBehaviour, IPointerClickHandler, IPointerEnterHa
         {
             plantView.transform.SetParent(transform);
             plantView.transform.localPosition = Vector3.zero;
+        }
+    }
+
+    /// <summary>
+    /// Устанавливает сущность растения для клетки
+    /// </summary>
+    public void SetPlantEntity(IPlantEntity plantEntity)
+    {
+        _currentPlantEntity = plantEntity;
+        if (plantEntity != null)
+        {
+            SetPlantView(plantEntity.View);
+        }
+        else
+        {
+            SetPlantView(null);
         }
     }
 
