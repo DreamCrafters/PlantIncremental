@@ -21,7 +21,7 @@ MonoBehaviour:
   AutoSaveInterval: 30
   DayDuration: 180
   ViewPrefab: {fileID: 2957457302213695260, guid: d55f61d889a764b208ee005ba3f3b143, type: 3}
-  WitherChancePerTwoSeconds: 1
+  WateringDuration: 1
   AvailablePlants:
   - {fileID: 11400000, guid: a7789895466de4497ada380bb1bed776, type: 2}
   RarityChances:
@@ -35,3 +35,10 @@ MonoBehaviour:
     Chance: 0.04
   - Rarity: 4
     Chance: 0.01
+  SoilTypeChances:
+  - Type: 0
+    Chance: 0.6
+  - Type: 1
+    Chance: 0.3
+  - Type: 2
+    Chance: 0.1

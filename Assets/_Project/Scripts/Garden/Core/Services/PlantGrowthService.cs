@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UniRx;
-using UnityEngine;
 using VContainer;
 
 /// <summary>
@@ -27,6 +26,20 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
         _gridService = gridService;
     }
     
+    public void Dispose()
+    {
+        // Останавливаем рост всех растений
+        foreach (var plant in _growingPlants.Keys.ToList())
+        {
+            StopGrowing(plant);
+        }
+        
+        _growingPlants.Clear();
+        _growthModifiers.Clear();
+        _onPlantGrown?.Dispose();
+        _disposables?.Dispose();
+    }
+
     /// <summary>
     /// Начинает процесс роста для растения
     /// </summary>
@@ -95,20 +108,6 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
         };
     }
 
-    public void Dispose()
-    {
-        // Останавливаем рост всех растений
-        foreach (var plant in _growingPlants.Keys.ToList())
-        {
-            StopGrowing(plant);
-        }
-        
-        _growingPlants.Clear();
-        _growthModifiers.Clear();
-        _onPlantGrown?.Dispose();
-        _disposables?.Dispose();
-    }
-
     /// <summary>
     /// Рассчитывает модификатор скорости роста на основе окружения
     /// </summary>
@@ -123,48 +122,10 @@ public class PlantGrowthService : IPlantGrowthService, IDisposable
         // Модификатор от типа почвы
         var soilModifier = cell.GetGrowthModifier();
         
-        // Модификаторы от соседних растений
-        var neighborModifier = CalculateNeighborModifiers(cell.Position);
-        
         // Глобальные модификаторы (будут добавлены позже через систему навыков)
         var globalModifier = GetGlobalGrowthModifier();
         
-        return baseModifier * soilModifier * neighborModifier * globalModifier;
-    }
-    
-    /// <summary>
-    /// Рассчитывает модификаторы от соседних растений
-    /// </summary>
-    private float CalculateNeighborModifiers(Vector2Int position)
-    {
-        var modifier = 1f;
-        var neighbors = _gridService.GetNeighbors(position);
-        
-        foreach (var neighbor in neighbors)
-        {
-            if (neighbor.IsEmpty || neighbor.Plant.State.Value != PlantState.FullyGrown) 
-                continue;
-            
-            // Проверяем тип растения и его пассивную способность
-            var plantType = neighbor.Plant.Data.Type;
-            modifier *= GetPlantTypeGrowthBonus(plantType);
-        }
-        
-        return modifier;
-    }
-    
-    /// <summary>
-    /// Возвращает бонус к росту от типа растения
-    /// </summary>
-    private float GetPlantTypeGrowthBonus(PlantType type)
-    {
-        // Это будет расширено когда добавим больше типов растений
-        // Пока что базовая логика
-        return type switch
-        {
-            PlantType.Basic => 1.1f, // Базовое растение даёт 10% бонус
-            _ => 1f
-        };
+        return baseModifier * soilModifier * globalModifier;
     }
     
     /// <summary>

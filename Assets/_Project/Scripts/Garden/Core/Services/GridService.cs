@@ -19,8 +19,6 @@ public class GridService : IGridService, IDisposable
     public IReadOnlyReactiveProperty<GridCell[,]> Grid => _grid;
     public IObservable<PlantHarvestedEvent> OnPlantHarvested => _onPlantHarvested;
     public IObservable<PlantDestroyedEvent> OnPlantDestroyed => _onPlantDestroyed;
-    public float InteractionCooldown => _settings.InteractionCooldown;
-    public float LastInteractionTime => _lastInteractionTime;
 
     [Inject]
     public GridService(GameSettings settings, IPlantFactory plantFactory, IRewardService rewardService)
@@ -200,8 +198,18 @@ public class GridService : IGridService, IDisposable
     private SoilType GenerateSoilType()
     {
         var random = UnityEngine.Random.Range(0f, 1f);
-        if (random < 0.6f) return SoilType.Fertile;
-        if (random < 0.9f) return SoilType.Rocky;
+        var soilChances = _settings.GetNormalizedSoilTypeChances();
+        
+        foreach (var soilChance in soilChances)
+        {
+            if (random < soilChance.Chance)
+            {
+                return soilChance.Type;
+            }
+
+            random -= soilChance.Chance;
+        }
+
         return SoilType.Unsuitable;
     }
 

@@ -20,6 +20,13 @@ public class GridCell
     {
         if (!IsEmpty) return false;
         Plant = plant;
+        
+        // Активируем механики посадки растения
+        if (plant is PlantEntity plantEntity)
+        {
+            plantEntity.SetGridPosition(Position);
+        }
+        
         return true;
     }
 

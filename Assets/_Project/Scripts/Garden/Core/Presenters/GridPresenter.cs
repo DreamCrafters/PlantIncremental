@@ -160,17 +160,8 @@ public class GridPresenter : IInitializable, IDisposable
     /// </summary>
     private void TryPlantAt(Vector2Int position)
     {
-        // Пытаемся посадить
         if (_gridService.TryPlantAt(position))
         {
-            // НЕ запускаем автоматический рост - растение должно быть полито сначала
-            // var cell = _gridService.GetCell(position);
-            // if (cell?.Plant != null)
-            // {
-            //     _growthService.StartGrowing(cell.Plant);
-            // }
-
-            // Визуальный эффект посадки
             PlayPlantEffect(position);
         }
     }
@@ -182,7 +173,6 @@ public class GridPresenter : IInitializable, IDisposable
     {
         if (_gridService.TryHarvestAt(position))
         {
-            // Урожай собран успешно - GridService уже отправил событие
             PlayHarvestEffect(position);
         }
     }
@@ -194,7 +184,6 @@ public class GridPresenter : IInitializable, IDisposable
     {
         if (_gridService.TryDestroyAt(position))
         {
-            // Растение успешно уничтожено - GridService уже отправил событие
             PlayDestroyEffect(position);
         }
     }
@@ -206,7 +195,6 @@ public class GridPresenter : IInitializable, IDisposable
     {
         if (grid == null) return;
 
-        // Обновляем визуальное представление всех клеток
         for (int x = 0; x < grid.GetLength(0); x++)
         {
             for (int y = 0; y < grid.GetLength(1); y++)
@@ -235,7 +223,6 @@ public class GridPresenter : IInitializable, IDisposable
         }
         else
         {
-            // Если клетка пустая, очищаем растение
             cellView.SetPlantEntity(null);
         }
     }
@@ -293,7 +280,6 @@ public class GridPresenter : IInitializable, IDisposable
     /// </summary>
     private void OnPlantWatered(IPlantEntity plant)
     {
-        // Если это был первый полив, запускаем рост растения
         if (plant.State.Value == PlantState.Seed)
         {
             _growthService.StartGrowing(plant);
@@ -330,9 +316,8 @@ public class GridPresenter : IInitializable, IDisposable
         if (_cellViews.TryGetValue(position, out var cellView))
         {
             cellView.PlayDestroyEffect();
-            
-            // Также проигрываем анимацию уничтожения на самом растении
             var cell = _gridService.GetCell(position);
+
             if (cell?.Plant?.View != null)
             {
                 cell.Plant.View.PlayDestroyAnimation();

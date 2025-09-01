@@ -60,22 +60,36 @@ public class GameSettingsEditor : Editor
             EditorGUILayout.PropertyField(iterator, true);
         }
         
-        // Показываем текущую сумму шансов
-        float totalChance = 0f;
+        // Показываем текущую сумму шансов для редкости растений
+        float totalRarityChance = 0f;
         if (gameSettings.RarityChances != null)
         {
             foreach (var chance in gameSettings.RarityChances)
             {
-                totalChance += chance.Chance;
+                totalRarityChance += chance.Chance;
             }
         }
+
+        EditorGUILayout.LabelField($"Total Rarity Chances: {totalRarityChance:F2}", EditorStyles.boldLabel);
+
+        // Показываем текущую сумму шансов для типов почвы
+        float totalSoilChance = 0f;
+        if (gameSettings.SoilTypeChances != null)
+        {
+            foreach (var chance in gameSettings.SoilTypeChances)
+            {
+                totalSoilChance += chance.Chance;
+            }
+        }
+
+        EditorGUILayout.LabelField($"Total Soil Type Chances: {totalSoilChance:F2}", EditorStyles.boldLabel);
 
         // Кнопки управления
         EditorGUILayout.Space();
         
         EditorGUILayout.BeginHorizontal();
         
-        if (GUILayout.Button("Reset to Default"))
+        if (GUILayout.Button("Reset Rarity to Default"))
         {
             gameSettings.RarityChances = new PlantRarityChance[]
             {
@@ -88,28 +102,18 @@ public class GameSettingsEditor : Editor
             EditorUtility.SetDirty(gameSettings);
         }
 
-        EditorGUILayout.EndHorizontal();
-
-        // Статистика растений по редкости
-        EditorGUILayout.Space();
-        
-        if (GUILayout.Button("Show Plant Statistics"))
+        if (GUILayout.Button("Reset Soil to Default"))
         {
-            var plantCounts = gameSettings.GetPlantCountByRarity();
-            var stats = "=== Plant Statistics by Rarity ===\n";
-            
-            foreach (var kvp in plantCounts)
+            gameSettings.SoilTypeChances = new SoilTypeChance[]
             {
-                stats += $"{kvp.Key}: {kvp.Value} plants\n";
-            }
-            
-            if (plantCounts.Count == 0)
-            {
-                stats += "No plants assigned.\n";
-            }
-            
-            Debug.Log(stats);
+                new() { Type = SoilType.Fertile, Chance = 0.6f },
+                new() { Type = SoilType.Rocky, Chance = 0.3f },
+                new() { Type = SoilType.Unsuitable, Chance = 0.1f }
+            };
+            EditorUtility.SetDirty(gameSettings);
         }
+
+        EditorGUILayout.EndHorizontal();
 
         serializedObject.ApplyModifiedProperties();
     }

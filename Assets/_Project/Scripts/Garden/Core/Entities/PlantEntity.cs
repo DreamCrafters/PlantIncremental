@@ -14,6 +14,7 @@ public class PlantEntity : IPlantEntity, IDisposable
 
     private readonly GameSettings _gameSettings;
     private readonly PlantView _view;
+    private readonly IPlantMechanics _mechanics;
 
     // Кэшируем для оптимизации
     private float _currentGrowthTime;
@@ -45,6 +46,14 @@ public class PlantEntity : IPlantEntity, IDisposable
         _gameSettings = gameSettings;
         _lastWateringTime = Time.time;
 
+        // Инициализируем механики через менеджер
+        _mechanics = new PlantMechanicsManager(
+            data.PlantedMechanics,
+            data.WateredMechanics,
+            data.HarvestedMechanics,
+            data.GrowthStageChangedMechanics
+        );
+
         SubscribeToStateChanges();
         UpdateVisual();
 
@@ -64,6 +73,14 @@ public class PlantEntity : IPlantEntity, IDisposable
     }
 
     /// <summary>
+    /// Устанавливает позицию растения на сетке и активирует механики посадки
+    /// </summary>
+    public void SetGridPosition(Vector2Int gridPosition)
+    {
+        _mechanics.OnPlanted(this, gridPosition);
+    }
+
+    /// <summary>
     /// Поливает растение, позволяя ему продолжить рост
     /// </summary>
     public void Water()
@@ -79,6 +96,9 @@ public class PlantEntity : IPlantEntity, IDisposable
 
         // Скрываем эффект ожидания полива
         _view.HideWateringIcon();
+
+        // Вызываем механики полива
+        _mechanics.OnWatered(this);
 
         _state.Value += 1;
         UpdateVisualStage();
@@ -120,6 +140,9 @@ public class PlantEntity : IPlantEntity, IDisposable
             Coins = CalculateCoinsReward(),
             Petals = CalculatePetalsReward(),
         };
+
+        // Вызываем механики сбора урожая
+        _mechanics.OnHarvested(this, result);
 
         // Анимация сбора
         _view.PlayHarvestAnimation();
@@ -173,6 +196,10 @@ public class PlantEntity : IPlantEntity, IDisposable
         {
             RequireWatering();
         }
+        else if (newStage == PlantState.FullyGrown)
+        {
+            StartWitherTimer();
+        }
     }
 
     private PlantState GetGrowthStageFromProgress(float progress)
@@ -209,6 +236,9 @@ public class PlantEntity : IPlantEntity, IDisposable
         _state.Subscribe(state =>
         {
             UpdateVisual();
+
+            // Вызываем механики при изменении стадии роста
+            _mechanics.OnGrowthStageChanged(this, state);
 
             // Обновляем иконки в зависимости от состояния
             switch (state)

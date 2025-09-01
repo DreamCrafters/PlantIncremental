@@ -3,19 +3,18 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "GameSettings", menuName = "Game/Settings")]
 public class GameSettings : ScriptableObject
 {
-    [Header("Grid")]
+    [Header("Grid View")]
     public Vector2Int GridSize = new(6, 6);
     public GridDisplayType DisplayType = GridDisplayType.Orthogonal;
     public Vector2 OrthographicTileSize = new(0.5f, 0.25f);
     public Vector2 IsometricTileSize = new(0.5f, 0.25f);
+    [Tooltip("Отступ от края карты до края камеры (в мировых единицах)")]
+    public float CameraMargin = 1.0f;
 
     [Header("Interaction")]
     [Tooltip("Кулдаун между взаимодействиями (в секундах)")]
-    public float InteractionCooldown = 0.5f;
-
-    [Header("Camera")]
-    [Tooltip("Отступ от края карты до края камеры (в мировых единицах)")]
-    public float CameraMargin = 1.0f;
+    [Min(0)] public float InteractionCooldown = 0.5f;
+    [Min(0)] public float WateringDuration = 0.5f;
 
     [Header("Save")]
     public float AutoSaveInterval = 30f;
@@ -25,8 +24,6 @@ public class GameSettings : ScriptableObject
 
     [Header("Plants")]
     public PlantView ViewPrefab;
-    [Range(0, 1)] public float WitherChancePerTwoSeconds = 0.01f;
-    [Min(0)] public float WateringDuration = 0.5f;
     public PlantData[] AvailablePlants;
     [Tooltip("Шанс выпадения растений по редкости (от 0 до 1). В инспекторе отображаются нормализованные значения")]
     public PlantRarityChance[] RarityChances = new PlantRarityChance[]
@@ -37,31 +34,20 @@ public class GameSettings : ScriptableObject
         new() { Rarity = PlantRarity.Epic, Chance = 0.04f },
         new() { Rarity = PlantRarity.Legendary, Chance = 0.01f }
     };
-
-    /// <summary>
-    /// Проверяет корректность настроек редкости
-    /// </summary>
-    public bool ValidateRarityChances()
+    [Tooltip("Шанс выпадения почвы по редкости (от 0 до 1). В инспекторе отображаются нормализованные значения")]
+    public SoilTypeChance[] SoilTypeChances = new SoilTypeChance[]
     {
-        if (RarityChances == null || RarityChances.Length == 0) return false;
-
-        float totalChance = 0f;
-        foreach (var rarityChance in RarityChances)
-        {
-            if (rarityChance.Chance < 0f) return false; // Отрицательные шансы недопустимы
-            totalChance += rarityChance.Chance;
-        }
-
-        // Проверяем, что общая сумма больше 0 (для нормализации)
-        return totalChance > 0f;
-    }
+        new() { Type = SoilType.Fertile, Chance = 0.6f },
+        new() { Type = SoilType.Rocky, Chance = 0.3f },
+        new() { Type = SoilType.Unsuitable, Chance = 0.1f },
+    };
 
     /// <summary>
     /// Получает нормализованные шансы редкости для использования в игровой логике
     /// </summary>
     public PlantRarityChance[] GetNormalizedRarityChances()
     {
-        if (RarityChances == null || RarityChances.Length == 0) 
+        if (RarityChances == null || RarityChances.Length == 0)
             return new PlantRarityChance[0];
 
         float totalChance = 0f;
@@ -70,7 +56,7 @@ public class GameSettings : ScriptableObject
             totalChance += rarityChance.Chance;
         }
 
-        if (totalChance <= 0f) 
+        if (totalChance <= 0f)
             return new PlantRarityChance[0];
 
         var normalizedChances = new PlantRarityChance[RarityChances.Length];
@@ -80,6 +66,36 @@ public class GameSettings : ScriptableObject
             {
                 Rarity = RarityChances[i].Rarity,
                 Chance = RarityChances[i].Chance / totalChance
+            };
+        }
+
+        return normalizedChances;
+    }
+
+    /// <summary>
+    /// Получает нормализованные шансы типов почвы для использования в игровой логике
+    /// </summary>
+    public SoilTypeChance[] GetNormalizedSoilTypeChances()
+    {
+        if (SoilTypeChances == null || SoilTypeChances.Length == 0)
+            return new SoilTypeChance[0];
+
+        float totalChance = 0f;
+        foreach (var soilChance in SoilTypeChances)
+        {
+            totalChance += soilChance.Chance;
+        }
+
+        if (totalChance <= 0f)
+            return new SoilTypeChance[0];
+
+        var normalizedChances = new SoilTypeChance[SoilTypeChances.Length];
+        for (int i = 0; i < SoilTypeChances.Length; i++)
+        {
+            normalizedChances[i] = new SoilTypeChance
+            {
+                Type = SoilTypeChances[i].Type,
+                Chance = SoilTypeChances[i].Chance / totalChance
             };
         }
 
