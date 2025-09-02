@@ -16,12 +16,10 @@ public static class GardenContainerExtensions
         builder.Register<IGridService, GridService>(Lifetime.Singleton);
         
         // Регистрация новых сервисов управления растениями
-        builder.Register<IPlantGrowthManager, PlantGrowthManager>(Lifetime.Singleton);
         builder.Register<IWateringManager, WateringManager>(Lifetime.Singleton);
         builder.Register<IPlantMechanicsFactory, PlantMechanicsFactory>(Lifetime.Singleton);
         
         // Регистрация старых сервисов для совместимости (если они еще используются)
-        builder.Register<IPlantGrowthService, PlantGrowthService>(Lifetime.Singleton);
         builder.Register<IWateringSystem, WateringSystem>(Lifetime.Singleton);
 
         // Регистрация представлений

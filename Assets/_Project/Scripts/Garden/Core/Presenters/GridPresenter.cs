@@ -12,7 +12,6 @@ public class GridPresenter : IInitializable, IDisposable
 {
     private readonly IGridService _gridService;
     private readonly GridView _gridView;
-    private readonly IPlantGrowthManager _growthManager;
     private readonly IWateringManager _wateringManager;
     private readonly IEconomyService _economyService;
     private readonly GameSettings _settings;
@@ -23,14 +22,12 @@ public class GridPresenter : IInitializable, IDisposable
     [Inject]
     public GridPresenter(
         IGridService gridService,
-        IPlantGrowthManager growthManager,
         IWateringManager wateringManager,
         IEconomyService economyService,
         GridView gridView,
         GameSettings settings)
     {
         _gridService = gridService;
-        _growthManager = growthManager;
         _wateringManager = wateringManager;
         _economyService = economyService;
         _gridView = gridView;
@@ -245,9 +242,6 @@ public class GridPresenter : IInitializable, IDisposable
         
         // Визуальный эффект сбора урожая
         PlayHarvestEffect(evt.Position);
-
-        // Останавливаем рост (растение уже собрано)
-        _growthManager.StopGrowth(evt.Plant);
     }
 
     /// <summary>
@@ -257,9 +251,6 @@ public class GridPresenter : IInitializable, IDisposable
     {
         // Визуальные эффекты уничтожения
         PlayDestroyEffect(evt.Position);
-
-        // Останавливаем рост (растение уже уничтожено)
-        _growthManager.StopGrowth(evt.Plant);
         
         // Дополнительно можно показать уведомление игроку
         // например "Увядшее растение удалено"
@@ -285,8 +276,6 @@ public class GridPresenter : IInitializable, IDisposable
     /// </summary>
     private void OnPlantWatered(IPlantEntity plant)
     {
-        // Запускаем рост растения после полива
-        _growthManager.StartGrowth(plant);
     }
     
     /// <summary>
@@ -294,9 +283,6 @@ public class GridPresenter : IInitializable, IDisposable
     /// </summary>
     private void OnPlantWithered(IPlantEntity plant)
     {
-        // Останавливаем рост увядшего растения
-        _growthManager.StopGrowth(plant);
-        
         // Можем добавить визуальные эффекты или уведомления
         Debug.Log($"Plant withered at position {plant.Position}");
     }
