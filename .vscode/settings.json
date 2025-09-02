@@ -56,5 +56,6 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "PlantIncremental.sln"
+    "dotnet.defaultSolution": "PlantIncremental.sln",
+    "claudeCodeChat.permissions.yoloMode": true
 }

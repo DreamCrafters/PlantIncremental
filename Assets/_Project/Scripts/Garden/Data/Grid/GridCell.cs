@@ -20,6 +20,13 @@ public class GridCell
     {
         if (!IsEmpty) return false;
         Plant = plant;
+        
+        // Активируем механики посадки растения
+        if (plant is PlantEntity plantEntity)
+        {
+            plantEntity.SetGridPosition(Position);
+        }
+        
         return true;
     }
 
@@ -29,18 +36,22 @@ public class GridCell
         Plant = null;
         return plant;
     }
-    
+
     /// <summary>
-    /// Получает модификатор скорости роста в зависимости от типа почвы
+    /// Получает модификатор роста для данного типа почвы
     /// </summary>
-    public float GetGrowthModifier()
+    public float GetGrowthModifier(GameSettings settings)
     {
-        return SoilType switch
+        if (settings?.SoilInfo == null) return 1f;
+
+        foreach (var soilInfo in settings.SoilInfo)
         {
-            SoilType.Fertile => 1.0f,
-            SoilType.Rocky => 0.75f,
-            SoilType.Unsuitable => 0.5f,
-            _ => 1.0f
-        };
+            if (soilInfo.Type == SoilType)
+            {
+                return soilInfo.GrowingSpeed;
+            }
+        }
+
+        return 1f; // Значение по умолчанию, если тип почвы не найден
     }
 }

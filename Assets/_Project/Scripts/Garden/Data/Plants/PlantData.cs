@@ -10,6 +10,19 @@ public class PlantData : ScriptableObject
     public int SellPrice = 20;
     public PlantType Type;
     public PlantRarity Rarity;
+    
+    [Header("Plant Mechanics - Modular System")]
+    [Tooltip("Механики, срабатывающие при посадке растения")]
+    public OnPlantedMechanics[] PlantedMechanics;
+    
+    [Tooltip("Механики, срабатывающие при поливе растения")]  
+    public OnWateredMechanics[] WateredMechanics;
+    
+    [Tooltip("Механики, срабатывающие при сборе урожая")]
+    public OnHarvestedMechanics[] HarvestedMechanics;
+    
+    [Tooltip("Механики, срабатывающие при изменении стадии роста")]
+    public OnGrowthStageChangedMechanics[] GrowthStageChangedMechanics;
 
     private void OnValidate()
     {

@@ -19,8 +19,6 @@ public class GridService : IGridService, IDisposable
     public IReadOnlyReactiveProperty<GridCell[,]> Grid => _grid;
     public IObservable<PlantHarvestedEvent> OnPlantHarvested => _onPlantHarvested;
     public IObservable<PlantDestroyedEvent> OnPlantDestroyed => _onPlantDestroyed;
-    public float InteractionCooldown => _settings.InteractionCooldown;
-    public float LastInteractionTime => _lastInteractionTime;
 
     [Inject]
     public GridService(GameSettings settings, IPlantFactory plantFactory, IRewardService rewardService)
@@ -40,50 +38,126 @@ public class GridService : IGridService, IDisposable
 
     public GridCell GetCell(Vector2Int position)
     {
-        if (IsValidPosition(position) == false) return null;
-        return _grid.Value[position.x, position.y];
+        if (!IsValidPosition(position))
+        {
+            Debug.LogWarning($"Invalid grid position requested: {position}. Grid size: {_settings.GridSize}");
+            return null;
+        }
+
+        try
+        {
+            return _grid.Value[position.x, position.y];
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to get cell at position {position}: {ex.Message}");
+            return null;
+        }
     }
 
     public bool TryPlantAt(Vector2Int position)
     {
-        if (IsAbleToInteract() == false) return false;
-
-        var cell = GetCell(position);
-
-        if (cell == null || !cell.IsEmpty) return false;
-
-        var plantData = GetRandomPlantData();
-
-        if (plantData == null || _settings.ViewPrefab == null) return false;
-
-        var plant = _plantFactory.CreatePlant(plantData);
-
-        if (cell.TryPlant(plant))
+        if (!IsAbleToInteract())
         {
-            _grid.SetValueAndForceNotify(_grid.Value);
-            _lastInteractionTime = Time.time;
-            return true;
+            Debug.LogWarning("Grid interaction is on cooldown");
+            return false;
         }
 
-        return false;
+        var cell = GetCell(position);
+        if (cell == null)
+        {
+            return false; // Error already logged in GetCell
+        }
+
+        if (!cell.IsEmpty)
+        {
+            Debug.LogWarning($"Cannot plant at {position}: cell is not empty");
+            return false;
+        }
+
+        var plantData = GetRandomPlantData();
+        if (plantData == null)
+        {
+            Debug.LogError("No plant data available for planting");
+            return false;
+        }
+
+        if (_settings.ViewPrefab == null)
+        {
+            Debug.LogError("ViewPrefab is not configured in GameSettings");
+            return false;
+        }
+
+        try
+        {
+            var plant = _plantFactory.CreatePlant(plantData);
+            if (plant == null)
+            {
+                Debug.LogError($"PlantFactory failed to create plant for {plantData.name}");
+                return false;
+            }
+
+            if (cell.TryPlant(plant))
+            {
+                _grid.SetValueAndForceNotify(_grid.Value);
+                _lastInteractionTime = Time.time;
+                return true;
+            }
+            else
+            {
+                Debug.LogWarning($"Failed to plant {plantData.name} at {position}");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Exception while planting at {position}: {ex.Message}");
+            return false;
+        }
     }
 
     public bool TryHarvestAt(Vector2Int position)
     {
-        if (IsAbleToInteract() == false) return false;
+        if (!IsAbleToInteract())
+        {
+            Debug.LogWarning("Grid interaction is on cooldown");
+            return false;
+        }
 
         var cell = GetCell(position);
+        if (cell == null)
+        {
+            return false; // Error already logged in GetCell
+        }
 
-        if (cell == null || cell.IsEmpty) return false;
+        if (cell.IsEmpty)
+        {
+            Debug.LogWarning($"Cannot harvest at {position}: cell is empty");
+            return false;
+        }
 
         var plant = cell.Plant;
-
-        if (CanHarvest(plant) == false) return false;
-
-        var harvestedPlant = cell.Harvest();
-
-        if (harvestedPlant != null)
+        if (plant == null)
         {
+            Debug.LogError($"Cell at {position} reports not empty but plant is null");
+            return false;
+        }
+
+        if (!CanHarvest(plant))
+        {
+            Debug.LogWarning($"Cannot harvest plant at {position}: plant state is {plant.State.Value}");
+            return false;
+        }
+
+        try
+        {
+            var harvestedPlant = cell.Harvest();
+            if (harvestedPlant == null)
+            {
+                Debug.LogError($"Harvest failed at {position}: returned null plant");
+                return false;
+            }
+
             // Обрабатываем награды через RewardService
             var reward = _rewardService.ProcessHarvest(harvestedPlant);
 
@@ -98,26 +172,55 @@ public class GridService : IGridService, IDisposable
             _lastInteractionTime = Time.time;
             return true;
         }
-
-        return false;
+        catch (Exception ex)
+        {
+            Debug.LogError($"Exception while harvesting at {position}: {ex.Message}");
+            return false;
+        }
     }
 
     public bool TryDestroyAt(Vector2Int position)
     {
-        if (IsAbleToInteract() == false) return false;
+        if (!IsAbleToInteract())
+        {
+            Debug.LogWarning("Grid interaction is on cooldown");
+            return false;
+        }
 
         var cell = GetCell(position);
+        if (cell == null)
+        {
+            return false; // Error already logged in GetCell
+        }
 
-        if (cell == null || cell.IsEmpty) return false;
+        if (cell.IsEmpty)
+        {
+            Debug.LogWarning($"Cannot destroy at {position}: cell is empty");
+            return false;
+        }
 
         var plant = cell.Plant;
-
-        if (CanDestroy(plant) == false) return false;
-
-        var destroyedPlant = cell.Harvest(); // Используем Harvest() для удаления из ячейки
-
-        if (destroyedPlant != null)
+        if (plant == null)
         {
+            Debug.LogError($"Cell at {position} reports not empty but plant is null");
+            return false;
+        }
+
+        if (!CanDestroy(plant))
+        {
+            Debug.LogWarning($"Cannot destroy plant at {position}: plant state is {plant.State.Value} (only withered plants can be destroyed)");
+            return false;
+        }
+
+        try
+        {
+            var destroyedPlant = cell.Harvest(); // Используем Harvest() для удаления из ячейки
+            if (destroyedPlant == null)
+            {
+                Debug.LogError($"Destroy failed at {position}: returned null plant");
+                return false;
+            }
+
             _onPlantDestroyed.OnNext(new PlantDestroyedEvent
             {
                 Plant = destroyedPlant,
@@ -128,8 +231,11 @@ public class GridService : IGridService, IDisposable
             _lastInteractionTime = Time.time;
             return true;
         }
-
-        return false;
+        catch (Exception ex)
+        {
+            Debug.LogError($"Exception while destroying plant at {position}: {ex.Message}");
+            return false;
+        }
     }
 
     public GridCell[] GetNeighbors(Vector2Int position, int radius = 1)
@@ -200,8 +306,18 @@ public class GridService : IGridService, IDisposable
     private SoilType GenerateSoilType()
     {
         var random = UnityEngine.Random.Range(0f, 1f);
-        if (random < 0.6f) return SoilType.Fertile;
-        if (random < 0.9f) return SoilType.Rocky;
+        var soilChances = _settings.GetNormalizedSoilTypeChances();
+        
+        foreach (var soilChance in soilChances)
+        {
+            if (random < soilChance.Chance)
+            {
+                return soilChance.Type;
+            }
+
+            random -= soilChance.Chance;
+        }
+
         return SoilType.Unsuitable;
     }
 

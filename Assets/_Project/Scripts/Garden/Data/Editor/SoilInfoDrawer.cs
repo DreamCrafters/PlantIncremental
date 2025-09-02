@@ -1,14 +1,17 @@
 using UnityEngine;
 using UnityEditor;
 
-[CustomPropertyDrawer(typeof(PlantRarityChance))]
-public class PlantRarityChanceDrawer : PropertyDrawer
+[CustomPropertyDrawer(typeof(SoilInfo))]
+public class SoilInfoDrawer : PropertyDrawer
 {
+    private const float ChanceTextWidth = 55f;
+
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
         EditorGUI.BeginProperty(position, label, property);
 
-        var rarityProperty = property.FindPropertyRelative("Rarity");
+        var typeProperty = property.FindPropertyRelative("Type");
+        var growingSpeedProperty = property.FindPropertyRelative("GrowingSpeed");
         var chanceProperty = property.FindPropertyRelative("Chance");
 
         // Получаем нормализованное значение
@@ -20,13 +23,15 @@ public class PlantRarityChanceDrawer : PropertyDrawer
         float spacing = EditorGUIUtility.standardVerticalSpacing;
 
         // Создаем прямоугольники для каждой строки
-        var rarityRect = new Rect(position.x, position.y, position.width, lineHeight);
-        var chanceRect = new Rect(position.x, position.y + lineHeight + spacing, position.width - 60f, lineHeight);
-        var normalizedPercentRect = new Rect(position.x + position.width - 55f, position.y + lineHeight + spacing, 55f, lineHeight);
+        var typeRect = new Rect(position.x, position.y, position.width, lineHeight);
+        var growingSpeedRect = new Rect(position.x, position.y + lineHeight + spacing, position.width, lineHeight);
+        var chanceRect = new Rect(position.x, position.y + (lineHeight + spacing) * 2, position.width - 60f, lineHeight);
+        var normalizedPercentRect = new Rect(position.x + position.width - ChanceTextWidth, position.y + (lineHeight + spacing) * 2, ChanceTextWidth, lineHeight);
 
         // Отображаем поля
-        EditorGUI.PropertyField(rarityRect, rarityProperty, new GUIContent("Редкость"));
-        
+        EditorGUI.PropertyField(typeRect, typeProperty, new GUIContent("Тип почвы"));
+        EditorGUI.PropertyField(growingSpeedRect, growingSpeedProperty, new GUIContent("Скорость роста"));
+
         // Для Chance показываем как слайдер с процентами
         float chanceValue = chanceProperty.floatValue;
         chanceValue = EditorGUI.Slider(chanceRect, new GUIContent("Шанс"), chanceValue, 0f, 1f);
@@ -34,17 +39,17 @@ public class PlantRarityChanceDrawer : PropertyDrawer
 
         // Нормализованные проценты выделяем цветом
         var originalColor = GUI.color;
-        GUI.color = Color.cyan;
+        GUI.color = Color.green;
         EditorGUI.LabelField(normalizedPercentRect, $"→{normalizedValue:P1}", EditorStyles.miniLabel);
         GUI.color = originalColor;
-    
+
         EditorGUI.EndProperty();
     }
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        // Возвращаем высоту для двух строк с отступом
-        return EditorGUIUtility.singleLineHeight * 2 + EditorGUIUtility.standardVerticalSpacing;
+        // Возвращаем высоту для трех строк с отступами
+        return EditorGUIUtility.singleLineHeight * 3 + EditorGUIUtility.standardVerticalSpacing * 2;
     }
 
     private float GetNormalizedValue(SerializedProperty currentProperty, float rawValue)
