@@ -11,6 +11,7 @@ public class WateringManager : IWateringManager
 {
     private readonly ITimeService _timeService;
     private readonly GameSettings _gameSettings;
+    private readonly IGridService _gridService;
     
     private readonly Dictionary<IPlantEntity, float> _lastWateringTimes = new();
     private readonly Dictionary<IPlantEntity, IDisposable> _witherTimers = new();
@@ -24,10 +25,11 @@ public class WateringManager : IWateringManager
     public IObservable<IPlantEntity> OnPlantWithered => _onPlantWithered;
 
     [Inject]
-    public WateringManager(ITimeService timeService, GameSettings gameSettings)
+    public WateringManager(ITimeService timeService, GameSettings gameSettings, IGridService gridService)
     {
         _timeService = timeService ?? throw new ArgumentNullException(nameof(timeService));
         _gameSettings = gameSettings ?? throw new ArgumentNullException(nameof(gameSettings));
+        _gridService = gridService ?? throw new ArgumentNullException(nameof(gridService));
     }
 
     public bool WaterPlant(IPlantEntity plant)
@@ -58,7 +60,8 @@ public class WateringManager : IWateringManager
             // Если это не финальная стадия - запускаем таймер для следующего полива
             if (nextStage.Value != PlantState.FullyGrown)
             {
-                StartGrowthTimer(plant, 1);
+                var growthModifier = GetGrowthModifierForPlant(plant);
+                StartGrowthTimer(plant, growthModifier);
             }
         }
         
@@ -180,7 +183,7 @@ public class WateringManager : IWateringManager
         // Останавливаем предыдущий таймер роста
         StopGrowthTimer(plant);
 
-        var growthTimer = _timeService.CreateTimer(TimeSpan.FromSeconds(plant.Data.GrowthTime * growthModifier / 2))
+        var growthTimer = _timeService.CreateTimer(TimeSpan.FromSeconds(plant.Data.GrowthTime / growthModifier / 2))
             .Subscribe(_ =>
             {
                 // Через N секунд растение требует полива для следующей стадии
@@ -203,6 +206,25 @@ public class WateringManager : IWateringManager
         {
             timer?.Dispose();
             _growthTimers.Remove(plant);
+        }
+    }
+
+    /// <summary>
+    /// Получает модификатор роста для растения на основе типа почвы
+    /// </summary>
+    private float GetGrowthModifierForPlant(IPlantEntity plant)
+    {
+        if (plant == null) return 1f;
+
+        try
+        {
+            var gridCell = _gridService.GetCell(plant.GridPosition);
+            return gridCell?.GetGrowthModifier(_gameSettings) ?? 1f;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error getting growth modifier for plant: {ex.Message}");
+            return 1f;
         }
     }
 

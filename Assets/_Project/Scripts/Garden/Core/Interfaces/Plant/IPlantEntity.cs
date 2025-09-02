@@ -12,6 +12,7 @@ public interface IPlantEntity : IDisposable
     bool IsHarvestable { get; }
     bool IsWithered { get; }
     Vector2 Position { get; }
+    Vector2Int GridPosition { get; }
 
     /// <summary>
     /// Обновляет прогресс роста растения

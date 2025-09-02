@@ -36,4 +36,22 @@ public class GridCell
         Plant = null;
         return plant;
     }
+
+    /// <summary>
+    /// Получает модификатор роста для данного типа почвы
+    /// </summary>
+    public float GetGrowthModifier(GameSettings settings)
+    {
+        if (settings?.SoilInfo == null) return 1f;
+
+        foreach (var soilInfo in settings.SoilInfo)
+        {
+            if (soilInfo.Type == SoilType)
+            {
+                return soilInfo.GrowingSpeed;
+            }
+        }
+
+        return 1f; // Значение по умолчанию, если тип почвы не найден
+    }
 }

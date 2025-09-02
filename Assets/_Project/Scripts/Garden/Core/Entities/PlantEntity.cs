@@ -14,6 +14,7 @@ public class PlantEntity : IPlantEntity
 
     private readonly PlantView _view;
     private readonly IPlantMechanics _mechanics;
+    private Vector2Int _gridPosition;
 
     public PlantData Data { get; }
     public IReadOnlyReactiveProperty<float> GrowthProgress => _growthProgress;
@@ -23,6 +24,7 @@ public class PlantEntity : IPlantEntity
     public bool IsHarvestable => _state.Value == PlantState.FullyGrown;
     public bool IsWithered => _state.Value == PlantState.Withered;
     public Vector2 Position => _view.transform.position;
+    public Vector2Int GridPosition => _gridPosition;
 
     public PlantEntity(PlantData data, PlantView view, IPlantMechanics mechanics)
     {
@@ -90,6 +92,8 @@ public class PlantEntity : IPlantEntity
 
     public void SetGridPosition(Vector2Int gridPosition)
     {
+        _gridPosition = gridPosition;
+        
         try
         {
             _mechanics.OnPlanted(this, gridPosition);
