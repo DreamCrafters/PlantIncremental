@@ -30,12 +30,19 @@ public class PlantView : MonoBehaviour
 
     // Отслеживание твинов
     private readonly List<Tween> _activeTweens = new();
+    
+    // Переиспользуемые последовательности для оптимизации памяти
+    private Sequence _reusableSequence;
+    private bool _sequenceInUse;
 
     private void Awake()
     {
         CacheComponents();
         _originalScale = transform.localScale;
         _originalColor = _spriteRenderer.color;
+
+        // Инициализируем переиспользуемую последовательность
+        InitializeReusableSequence();
 
         // Скрываем иконки по умолчанию
         if (_wateringIcon != null)
@@ -56,6 +63,13 @@ public class PlantView : MonoBehaviour
         if (_passiveEffectCoroutine != null)
         {
             StopCoroutine(_passiveEffectCoroutine);
+        }
+
+        // Очищаем переиспользуемую последовательность
+        if (_reusableSequence != null)
+        {
+            _reusableSequence.Kill();
+            _reusableSequence = null;
         }
     }
 
@@ -95,7 +109,7 @@ public class PlantView : MonoBehaviour
         if (_visualTransform == null || _spriteRenderer == null) return;
 
         // Подпрыгивание и исчезновение
-        var sequence = DOTween.Sequence();
+        var sequence = GetSequence();
         sequence.SetTarget(_visualTransform);
 
         var jumpTween = _visualTransform.DOJump(
@@ -116,6 +130,7 @@ public class PlantView : MonoBehaviour
 
         sequence.OnComplete(() =>
         {
+            ReleaseSequence(sequence);
             if (gameObject != null)
             {
                 gameObject.SetActive(false);
@@ -133,7 +148,7 @@ public class PlantView : MonoBehaviour
         if (_visualTransform == null || _spriteRenderer == null) return;
 
         // Анимация уничтожения с эффектом разрушения
-        var sequence = DOTween.Sequence();
+        var sequence = GetSequence();
         sequence.SetTarget(_visualTransform);
 
         // Быстрое дрожание
@@ -159,6 +174,7 @@ public class PlantView : MonoBehaviour
 
         sequence.OnComplete(() =>
         {
+            ReleaseSequence(sequence);
             if (gameObject != null)
             {
                 gameObject.SetActive(false);
@@ -194,7 +210,7 @@ public class PlantView : MonoBehaviour
         ShowWitheredIcon();
 
         // Анимация увядания
-        var sequence = DOTween.Sequence();
+        var sequence = GetSequence();
         sequence.SetTarget(_visualTransform);
 
         // Растение "опускается"
@@ -205,6 +221,7 @@ public class PlantView : MonoBehaviour
 
         sequence.Append(rotateTween);
         sequence.Join(scaleTween);
+        sequence.OnComplete(() => ReleaseSequence(sequence));
 
         AddTween(sequence);
     }
@@ -347,23 +364,59 @@ public class PlantView : MonoBehaviour
         {
             _activeTweens.Add(tween);
 
-            // Автоматически удаляем из списка по завершении
-            tween.OnComplete(() =>
-            {
-                if (tween != null)
-                {
-                    _activeTweens.Remove(tween);
-                }
-            });
+            // Используем слабую ссылку для избежания утечек памяти
+            var weakRef = new System.WeakReference(tween);
+            
+            tween.OnComplete(() => RemoveTweenFromList(weakRef));
+            tween.OnKill(() => RemoveTweenFromList(weakRef));
+        }
+    }
 
-            // Дополнительная безопасность - удаляем из списка при убийстве
-            tween.OnKill(() =>
-            {
-                if (tween != null)
-                {
-                    _activeTweens.Remove(tween);
-                }
-            });
+    /// <summary>
+    /// Безопасно удаляет твин из списка активных через слабую ссылку
+    /// </summary>
+    private void RemoveTweenFromList(System.WeakReference tweenRef)
+    {
+        if (tweenRef.Target is Tween tween)
+        {
+            _activeTweens.Remove(tween);
+        }
+    }
+
+    /// <summary>
+    /// Инициализирует переиспользуемую последовательность для оптимизации памяти
+    /// </summary>
+    private void InitializeReusableSequence()
+    {
+        _reusableSequence = DOTween.Sequence()
+            .SetAutoKill(false)
+            .Pause();
+    }
+
+    /// <summary>
+    /// Получает переиспользуемую последовательность или создает новую если занята
+    /// </summary>
+    private Sequence GetSequence()
+    {
+        if (!_sequenceInUse && _reusableSequence != null && !_reusableSequence.IsActive())
+        {
+            _sequenceInUse = true;
+            _reusableSequence.Rewind();
+            return _reusableSequence;
+        }
+        
+        // Если основная последовательность занята, создаем новую
+        return DOTween.Sequence();
+    }
+
+    /// <summary>
+    /// Освобождает переиспользуемую последовательность
+    /// </summary>
+    private void ReleaseSequence(Sequence sequence)
+    {
+        if (sequence == _reusableSequence)
+        {
+            _sequenceInUse = false;
         }
     }
 
@@ -413,7 +466,7 @@ public class PlantView : MonoBehaviour
             // Добавляем легкое свечение каждые 3 секунды
             if (Random.Range(0f, 1f) > 0.5f && _spriteRenderer != null)
             {
-                var glowSequence = DOTween.Sequence();
+                var glowSequence = GetSequence();
                 glowSequence.SetTarget(_spriteRenderer);
 
                 var glow1 = _spriteRenderer.DOColor(_originalColor * 1.3f, 0.5f)
@@ -423,6 +476,7 @@ public class PlantView : MonoBehaviour
 
                 glowSequence.Append(glow1);
                 glowSequence.Append(glow2);
+                glowSequence.OnComplete(() => ReleaseSequence(glowSequence));
 
                 AddTween(glowSequence);
             }
