@@ -8,14 +8,13 @@ using UnityEngine.EventSystems;
 /// </summary>
 public class LongPressHandler : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, ILongPressHandler
 {
-    [SerializeField] private float _longPressDuration = 1f; // Длительность долгого нажатия
-    
     private readonly Subject<Unit> _onLongPressStart = new();
     private readonly Subject<Unit> _onLongPressEnd = new();
     private readonly Subject<Unit> _onLongPressComplete = new();
     
     private IDisposable _longPressTimer;
     private bool _isPressed;
+    private float _longPressDuration = 1f;
     
     public IObservable<Unit> OnLongPressStart => _onLongPressStart;
     public IObservable<Unit> OnLongPressEnd => _onLongPressEnd;
@@ -75,6 +74,65 @@ public class LongPressHandler : MonoBehaviour, IPointerDownHandler, IPointerUpHa
         {
             _isPressed = false;
             _onLongPressEnd.OnNext(Unit.Default);
+            _longPressTimer?.Dispose();
+            _longPressTimer = null;
+        }
+    }
+    
+    /// <summary>
+    /// Перезапускает таймер долгого нажатия если нажатие активно
+    /// </summary>
+    public void RestartLongPress()
+    {
+        if (!_isPressed) return;
+        
+        // Перезапускаем таймер без изменения состояния
+        _longPressTimer?.Dispose();
+        _longPressTimer = Observable.Timer(TimeSpan.FromSeconds(_longPressDuration))
+            .Subscribe(_ =>
+            {
+                if (_isPressed)
+                {
+                    _onLongPressComplete.OnNext(Unit.Default);
+                }
+            });
+    }
+    
+    /// <summary>
+    /// Программно начинает долгое нажатие
+    /// </summary>
+    public void StartLongPress()
+    {
+        if (_isPressed) return;
+        
+        _isPressed = true;
+        _onLongPressStart.OnNext(Unit.Default);
+        
+        // Запускаем таймер долгого нажатия
+        _longPressTimer?.Dispose();
+        _longPressTimer = Observable.Timer(TimeSpan.FromSeconds(_longPressDuration))
+            .Subscribe(_ =>
+            {
+                if (_isPressed)
+                {
+                    _onLongPressComplete.OnNext(Unit.Default);
+                }
+            });
+    }
+    
+    /// <summary>
+    /// Получить текущее состояние нажатия
+    /// </summary>
+    public bool IsPressed => _isPressed;
+    
+    /// <summary>
+    /// Завершает текущее долгое нажатие и сбрасывает состояние для возможности начать новое
+    /// </summary>
+    public void CompleteAndReset()
+    {
+        if (_isPressed)
+        {
+            _isPressed = false;
             _longPressTimer?.Dispose();
             _longPressTimer = null;
         }

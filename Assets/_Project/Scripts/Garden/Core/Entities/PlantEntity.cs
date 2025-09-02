@@ -19,6 +19,7 @@ public class PlantEntity : IPlantEntity
     public PlantData Data { get; }
     public IReadOnlyReactiveProperty<float> GrowthProgress => _growthProgress;
     public IReadOnlyReactiveProperty<PlantState> State => _state;
+    public IReadOnlyReactiveProperty<bool> WaitingForWater => _isWaitingForWater;
     public PlantView View => _view;
     public bool IsWaitingForWater => _isWaitingForWater.Value;
     public bool IsHarvestable => _state.Value == PlantState.FullyGrown;

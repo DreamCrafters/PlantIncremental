@@ -106,7 +106,10 @@ public class PlantView : MonoBehaviour
     /// </summary>
     public void PlayHarvestAnimation()
     {
-        if (_visualTransform == null || _spriteRenderer == null) return;
+        if (_visualTransform == null || _spriteRenderer == null) 
+        {
+            return;
+        }
 
         // Подпрыгивание и исчезновение
         var sequence = GetSequence();
@@ -130,14 +133,15 @@ public class PlantView : MonoBehaviour
 
         sequence.OnComplete(() =>
         {
+            _activeTweens.Remove(sequence);
             ReleaseSequence(sequence);
             if (gameObject != null)
             {
-                gameObject.SetActive(false);
+                Destroy(gameObject);
             }
         });
 
-        AddTween(sequence);
+        _activeTweens.Add(sequence);
     }
 
     /// <summary>

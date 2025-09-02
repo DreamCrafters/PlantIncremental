@@ -24,7 +24,7 @@ MonoBehaviour:
     Sprite: {fileID: 21300000, guid: e4144d98ad0d443d29cbfac83b00aa19, type: 3}
   - State: 4
     Sprite: {fileID: 21300000, guid: 362754979592948b3af740f978f8f4f6, type: 3}
-  GrowthTime: 10
+  GrowthTime: 1
   SellPrice: 1
   Type: 0
   Rarity: 0

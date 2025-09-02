@@ -64,6 +64,12 @@ public class GridPresenter : IInitializable, IDisposable
                 var cell = grid[x, y];
                 var cellView = _gridView.CreateCellView(position);
 
+                // Настраиваем длительность долгого нажатия для полива
+                if (cellView.TryGetComponent(out LongPressHandler longPressHandler))
+                {
+                    longPressHandler.LongPressDuration = _settings.WateringDuration;
+                }
+
                 _cellViews[position] = cellView;
                 UpdateCellVisual(cellView, cell);
                 SubscribeToCellClick(cellView, position);

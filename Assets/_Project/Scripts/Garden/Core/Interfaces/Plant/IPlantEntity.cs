@@ -7,6 +7,7 @@ public interface IPlantEntity : IDisposable
     PlantData Data { get; }
     IReadOnlyReactiveProperty<float> GrowthProgress { get; }
     IReadOnlyReactiveProperty<PlantState> State { get; }
+    IReadOnlyReactiveProperty<bool> WaitingForWater { get; }
     PlantView View { get; }
     bool IsWaitingForWater { get; }
     bool IsHarvestable { get; }
