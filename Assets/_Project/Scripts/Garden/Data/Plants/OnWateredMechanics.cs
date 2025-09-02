@@ -13,5 +13,5 @@ public abstract class OnWateredMechanics : ScriptableObject
     /// Вызывается когда растение поливают
     /// </summary>
     /// <param name="plant">Растение которое поливают</param>
-    public abstract void Execute(PlantEntity plant);
+    public abstract void Execute(IPlantEntity plant);
 }

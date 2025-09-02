@@ -24,6 +24,7 @@ public class GameSettings : ScriptableObject
 
     [Header("Plants")]
     public PlantView ViewPrefab;
+    [Min(0)] public float WitheringDuration = 10f;
     public PlantData[] AvailablePlants;
     [Tooltip("Шанс выпадения растений по редкости (от 0 до 1). В инспекторе отображаются нормализованные значения")]
     public PlantRarityChance[] RarityChances = new PlantRarityChance[]
@@ -35,7 +36,7 @@ public class GameSettings : ScriptableObject
         new() { Rarity = PlantRarity.Legendary, Chance = 0.01f }
     };
     [Tooltip("Шанс выпадения почвы по редкости (от 0 до 1). В инспекторе отображаются нормализованные значения")]
-    public SoilTypeChance[] SoilTypeChances = new SoilTypeChance[]
+    public SoilInfo[] SoilInfo = new SoilInfo[]
     {
         new() { Type = SoilType.Fertile, Chance = 0.6f },
         new() { Type = SoilType.Rocky, Chance = 0.3f },
@@ -75,27 +76,27 @@ public class GameSettings : ScriptableObject
     /// <summary>
     /// Получает нормализованные шансы типов почвы для использования в игровой логике
     /// </summary>
-    public SoilTypeChance[] GetNormalizedSoilTypeChances()
+    public SoilInfo[] GetNormalizedSoilTypeChances()
     {
-        if (SoilTypeChances == null || SoilTypeChances.Length == 0)
-            return new SoilTypeChance[0];
+        if (SoilInfo == null || SoilInfo.Length == 0)
+            return new SoilInfo[0];
 
         float totalChance = 0f;
-        foreach (var soilChance in SoilTypeChances)
+        foreach (var soilChance in SoilInfo)
         {
             totalChance += soilChance.Chance;
         }
 
         if (totalChance <= 0f)
-            return new SoilTypeChance[0];
+            return new SoilInfo[0];
 
-        var normalizedChances = new SoilTypeChance[SoilTypeChances.Length];
-        for (int i = 0; i < SoilTypeChances.Length; i++)
+        var normalizedChances = new SoilInfo[SoilInfo.Length];
+        for (int i = 0; i < SoilInfo.Length; i++)
         {
-            normalizedChances[i] = new SoilTypeChance
+            normalizedChances[i] = new SoilInfo
             {
-                Type = SoilTypeChances[i].Type,
-                Chance = SoilTypeChances[i].Chance / totalChance
+                Type = SoilInfo[i].Type,
+                Chance = SoilInfo[i].Chance / totalChance
             };
         }
 

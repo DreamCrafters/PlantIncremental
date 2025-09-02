@@ -14,5 +14,5 @@ public abstract class OnPlantedMechanics : ScriptableObject
     /// </summary>
     /// <param name="plant">Растение которое было посажено</param>
     /// <param name="gridPosition">Позиция на сетке где посажено растение</param>
-    public abstract void Execute(PlantEntity plant, Vector2Int gridPosition);
+    public abstract void Execute(IPlantEntity plant, Vector2Int gridPosition);
 }

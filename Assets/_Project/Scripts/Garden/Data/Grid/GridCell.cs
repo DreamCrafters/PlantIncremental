@@ -36,18 +36,4 @@ public class GridCell
         Plant = null;
         return plant;
     }
-    
-    /// <summary>
-    /// Получает модификатор скорости роста в зависимости от типа почвы
-    /// </summary>
-    public float GetGrowthModifier()
-    {
-        return SoilType switch
-        {
-            SoilType.Fertile => 1.0f,
-            SoilType.Rocky => 0.75f,
-            SoilType.Unsuitable => 0.5f,
-            _ => 1.0f
-        };
-    }
 }

@@ -3,29 +3,17 @@ using UniRx;
 using UnityEngine;
 
 /// <summary>
-/// Основная сущность растения, управляющая состоянием и визуализацией
+/// Основная сущность растения, представляющая модель данных с реактивными свойствами
 /// </summary>
-public class PlantEntity : IPlantEntity, IDisposable
+public class PlantEntity : IPlantEntity
 {
     private readonly ReactiveProperty<float> _growthProgress = new(0f);
     private readonly ReactiveProperty<PlantState> _state = new(PlantState.New);
     private readonly ReactiveProperty<bool> _isWaitingForWater = new(true);
     private readonly CompositeDisposable _disposables = new();
 
-    private readonly GameSettings _gameSettings;
     private readonly PlantView _view;
     private readonly IPlantMechanics _mechanics;
-
-    // Кэшируем для оптимизации
-    private float _currentGrowthTime;
-    private float _growthSpeedModifier = 1f;
-
-    // Система полива
-    private float _lastWateringTime;
-    private IDisposable _witherTimer;
-    private IDisposable _growthTimer; // Таймер для отслеживания роста
-
-    private const float WITHER_TIMEOUT = 10f; // 10 секунд до увядания без полива
 
     public PlantData Data { get; }
     public IReadOnlyReactiveProperty<float> GrowthProgress => _growthProgress;
@@ -36,35 +24,18 @@ public class PlantEntity : IPlantEntity, IDisposable
     public bool IsWithered => _state.Value == PlantState.Withered;
     public Vector2 Position => _view.transform.position;
 
-    // Новые свойства для полива
-    public float TimeSinceLastWatering => Time.time - _lastWateringTime;
-
-    public PlantEntity(PlantData data, PlantView view, GameSettings gameSettings)
+    public PlantEntity(PlantData data, PlantView view, IPlantMechanics mechanics)
     {
-        Data = data;
-        _view = view;
-        _gameSettings = gameSettings;
-        _lastWateringTime = Time.time;
-
-        // Инициализируем механики через менеджер
-        _mechanics = new PlantMechanicsManager(
-            data.PlantedMechanics,
-            data.WateredMechanics,
-            data.HarvestedMechanics,
-            data.GrowthStageChangedMechanics
-        );
+        Data = data ?? throw new ArgumentNullException(nameof(data));
+        _view = view ?? throw new ArgumentNullException(nameof(view));
+        _mechanics = mechanics ?? throw new ArgumentNullException(nameof(mechanics));
 
         SubscribeToStateChanges();
         UpdateVisual();
-
-        // Запускаем таймер увядания с самого начала
-        StartWitherTimer();
     }
 
     public void Dispose()
     {
-        _witherTimer?.Dispose();
-        _growthTimer?.Dispose();
         _disposables?.Dispose();
         if (_view != null)
         {
@@ -72,65 +43,68 @@ public class PlantEntity : IPlantEntity, IDisposable
         }
     }
 
-    /// <summary>
-    /// Устанавливает позицию растения на сетке и активирует механики посадки
-    /// </summary>
+    public void UpdateGrowthProgress(float progress)
+    {
+        if (progress < 0f || progress > 1f)
+        {
+            Debug.LogWarning($"Invalid growth progress: {progress}. Must be between 0 and 1");
+            progress = Mathf.Clamp01(progress);
+        }
+        
+        _growthProgress.Value = progress;
+    }
+
+    public void UpdateState(PlantState newState)
+    {
+        if (_state.Value != newState)
+        {
+            _state.Value = newState;
+            
+            try
+            {
+                _mechanics.OnGrowthStageChanged(this, newState);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error executing growth stage changed mechanics: {ex.Message}");
+            }
+        }
+    }
+
+    public void SetWaitingForWater(bool waiting)
+    {
+        if (_isWaitingForWater.Value != waiting)
+        {
+            _isWaitingForWater.Value = waiting;
+            
+            if (waiting)
+            {
+                _view.ShowWateringIcon();
+            }
+            else
+            {
+                _view.HideWateringIcon();
+            }
+        }
+    }
+
     public void SetGridPosition(Vector2Int gridPosition)
     {
-        _mechanics.OnPlanted(this, gridPosition);
+        try
+        {
+            _mechanics.OnPlanted(this, gridPosition);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error executing planted mechanics: {ex.Message}");
+        }
     }
 
-    /// <summary>
-    /// Поливает растение, позволяя ему продолжить рост
-    /// </summary>
-    public void Water()
-    {
-        if (!_isWaitingForWater.Value) return;
-
-        _lastWateringTime = Time.time;
-        _isWaitingForWater.Value = false;
-
-        // Останавливаем таймер увядания
-        _witherTimer?.Dispose();
-        _witherTimer = null;
-
-        // Скрываем эффект ожидания полива
-        _view.HideWateringIcon();
-
-        // Вызываем механики полива
-        _mechanics.OnWatered(this);
-
-        _state.Value += 1;
-        UpdateVisualStage();
-        StartGrowing(_growthSpeedModifier);
-    }
-
-    /// <summary>
-    /// Начинает процесс роста растения
-    /// </summary>
-    public void StartGrowing(float growthModifier = 1f)
-    {
-        if (_state.Value == PlantState.Withered) return;
-
-        _growthSpeedModifier = growthModifier;
-
-        // Останавливаем предыдущий рост, если он был
-        _growthTimer?.Dispose();
-
-        // Подписываемся на каждую секунду для обновления роста (на главном потоке)
-        _growthTimer = Observable.Interval(TimeSpan.FromSeconds(1))
-            .ObserveOnMainThread()
-            .TakeWhile(_ => _state.Value != PlantState.FullyGrown && _state.Value != PlantState.Withered)
-            .Subscribe(_ => UpdateGrowth());
-    }
-
-    /// <summary>
-    /// Собирает растение и возвращает награду
-    /// </summary>
     public PlantHarvestResult Harvest()
     {
-        if (IsHarvestable == false)
+        if (!IsHarvestable)
         {
+            Debug.LogWarning($"Cannot harvest plant in state {_state.Value}");
             return new PlantHarvestResult { Success = false };
         }
 
@@ -141,8 +115,15 @@ public class PlantEntity : IPlantEntity, IDisposable
             Petals = CalculatePetalsReward(),
         };
 
-        // Вызываем механики сбора урожая
-        _mechanics.OnHarvested(this, result);
+        try
+        {
+            // Вызываем механики сбора урожая
+            _mechanics.OnHarvested(this, result);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error executing harvested mechanics: {ex.Message}");
+        }
 
         // Анимация сбора
         _view.PlayHarvestAnimation();
@@ -150,85 +131,38 @@ public class PlantEntity : IPlantEntity, IDisposable
         return result;
     }
 
-    /// <summary>
-    /// Активирует пассивную способность растения
-    /// </summary>
+    public void Water()
+    {
+        _isWaitingForWater.Value = false;
+    }
+
     public void ActivatePassiveAbility()
     {
-        if (_state.Value != PlantState.FullyGrown) return;
-
-        _view.ShowPassiveEffect();
-    }
-
-    /// <summary>
-    /// Останавливает процесс роста (и очищает подписки)
-    /// </summary>
-    public void StopGrowing()
-    {
-        // Останавливаем таймер роста
-        _growthTimer?.Dispose();
-        _growthTimer = null;
-    }
-
-    private void UpdateGrowth()
-    {
-        if (_growthSpeedModifier <= 0f || _isWaitingForWater.Value)
+        if (_state.Value != PlantState.FullyGrown)
         {
             return;
         }
 
-        // Увеличиваем прогресс роста
-        var growthIncrement = 1f / Data.GrowthTime * _growthSpeedModifier;
-        _currentGrowthTime += growthIncrement;
-        _growthProgress.Value = Mathf.Clamp01(_currentGrowthTime);
-
-        // Проверяем, нужен ли полив на новой стадии
-        CheckForWateringNeeds();
-    }
-
-    private void CheckForWateringNeeds()
-    {
-        var progress = _growthProgress.Value;
-        var newStage = GetGrowthStageFromProgress(progress);
-
-        // Если мы перешли на новую стадию и это не финальная стадия
-        if (newStage > _state.Value)
+        try
         {
-            RequireWatering();
+            _view.ShowPassiveEffect();
         }
-        else if (newStage == PlantState.FullyGrown)
+        catch (Exception ex)
         {
-            StartWitherTimer();
+            Debug.LogError($"Error activating passive ability: {ex.Message}");
         }
     }
 
-    private PlantState GetGrowthStageFromProgress(float progress)
+    public void TriggerWaterMechanics()
     {
-        if (progress < 0.5) return PlantState.Seed;
-        if (progress < 1) return PlantState.Growing;
-        return PlantState.FullyGrown;
-    }
-
-    private void RequireWatering()
-    {
-        _isWaitingForWater.Value = true;
-
-        // Запускаем таймер увядания
-        StartWitherTimer();
-    }
-
-    private void StartWitherTimer()
-    {
-        _witherTimer?.Dispose();
-
-        _witherTimer = Observable.Timer(TimeSpan.FromSeconds(WITHER_TIMEOUT))
-            .Subscribe(_ =>
-            {
-                if (_isWaitingForWater.Value)
-                {
-                    _state.Value = PlantState.Withered;
-                }
-            });
+        try
+        {
+            _mechanics.OnWatered(this);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error executing watered mechanics: {ex.Message}");
+        }
     }
 
     private void SubscribeToStateChanges()
@@ -236,11 +170,8 @@ public class PlantEntity : IPlantEntity, IDisposable
         _state.Subscribe(state =>
         {
             UpdateVisual();
-
-            // Вызываем механики при изменении стадии роста
-            _mechanics.OnGrowthStageChanged(this, state);
-
-            // Обновляем иконки в зависимости от состояния
+            
+            // Обновляем визуальные индикаторы в зависимости от состояния
             switch (state)
             {
                 case PlantState.FullyGrown:
@@ -250,15 +181,6 @@ public class PlantEntity : IPlantEntity, IDisposable
                 case PlantState.Withered:
                     OnWithered();
                     break;
-
-                case PlantState.Growing:
-                case PlantState.Seed:
-                    // Убираем специальные иконки только если действительно не ждем полив
-                    if (!_isWaitingForWater.Value)
-                    {
-                        _view.HideWateringIcon();
-                    }
-                    break;
             }
         }).AddTo(_disposables);
 
@@ -266,44 +188,51 @@ public class PlantEntity : IPlantEntity, IDisposable
         {
             if (isWaiting)
             {
-                OnWaitingForWater();
+                _view.ShowWateringIcon();
+            }
+            else
+            {
+                _view.HideWateringIcon();
             }
         }).AddTo(_disposables);
+        
+        // Подписываемся на изменения прогресса роста для обновления визуала
+        _growthProgress.Subscribe(_ => UpdateVisual()).AddTo(_disposables);
     }
 
     private void UpdateVisual()
     {
-        // Обновляем визуал только на основе текущей визуальной стадии, а не состояния
-        UpdateVisualStage();
-    }
-
-    private void UpdateVisualStage()
-    {
         if (_view == null || Data.GrowthStages == null) return;
 
-        _view.UpdateSprite(Data.GrowthStages[(int)_state.Value].Sprite);
+        try
+        {
+            var stageIndex = (int)_state.Value;
+            if (stageIndex >= 0 && stageIndex < Data.GrowthStages.Length)
+            {
+                _view.UpdateSprite(Data.GrowthStages[stageIndex].Sprite);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error updating plant visual: {ex.Message}");
+        }
     }
 
     private void OnFullyGrown()
     {
-        // Активируем пассивную способность
         ActivatePassiveAbility();
     }
 
     private void OnWithered()
     {
-        _view.PlayWitherEffect();
-        StopGrowing();
-
-        // Останавливаем таймер увядания
-        _witherTimer?.Dispose();
-        _witherTimer = null;
-    }
-
-    private void OnWaitingForWater()
-    {
-        // Показываем иконку полива
-        _view.ShowWateringIcon();
+        try
+        {
+            _view.PlayWitherEffect();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error playing wither effect: {ex.Message}");
+        }
     }
 
     private int CalculateCoinsReward()

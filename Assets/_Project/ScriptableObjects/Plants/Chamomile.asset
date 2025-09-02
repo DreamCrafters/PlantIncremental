@@ -28,3 +28,8 @@ MonoBehaviour:
   SellPrice: 1
   Type: 0
   Rarity: 0
+  PlantedMechanics: []
+  WateredMechanics: []
+  HarvestedMechanics: []
+  GrowthStageChangedMechanics:
+  - {fileID: 11400000, guid: 20243a5e1c41748a3b614ab5bc561b98, type: 2}

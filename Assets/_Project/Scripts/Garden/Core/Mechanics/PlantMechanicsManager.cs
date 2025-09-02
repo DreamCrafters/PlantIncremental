@@ -23,7 +23,7 @@ public class PlantMechanicsManager : IPlantMechanics
         _onGrowthStageChangedMechanics = onGrowthStageChangedMechanics ?? new OnGrowthStageChangedMechanics[0];
     }
 
-    public void OnPlanted(PlantEntity plant, Vector2Int gridPosition)
+    public void OnPlanted(IPlantEntity plant, Vector2Int gridPosition)
     {
         foreach (var mechanic in _onPlantedMechanics)
         {
@@ -41,7 +41,7 @@ public class PlantMechanicsManager : IPlantMechanics
         }
     }
 
-    public void OnWatered(PlantEntity plant)
+    public void OnWatered(IPlantEntity plant)
     {
         foreach (var mechanic in _onWateredMechanics)
         {
@@ -59,7 +59,7 @@ public class PlantMechanicsManager : IPlantMechanics
         }
     }
 
-    public void OnHarvested(PlantEntity plant, PlantHarvestResult result)
+    public void OnHarvested(IPlantEntity plant, PlantHarvestResult result)
     {
         foreach (var mechanic in _onHarvestedMechanics)
         {
@@ -77,7 +77,7 @@ public class PlantMechanicsManager : IPlantMechanics
         }
     }
 
-    public void OnGrowthStageChanged(PlantEntity plant, PlantState newState)
+    public void OnGrowthStageChanged(IPlantEntity plant, PlantState newState)
     {
         foreach (var mechanic in _onGrowthStageChangedMechanics)
         {

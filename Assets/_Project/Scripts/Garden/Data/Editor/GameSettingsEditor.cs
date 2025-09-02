@@ -74,9 +74,9 @@ public class GameSettingsEditor : Editor
 
         // Показываем текущую сумму шансов для типов почвы
         float totalSoilChance = 0f;
-        if (gameSettings.SoilTypeChances != null)
+        if (gameSettings.SoilInfo != null)
         {
-            foreach (var chance in gameSettings.SoilTypeChances)
+            foreach (var chance in gameSettings.SoilInfo)
             {
                 totalSoilChance += chance.Chance;
             }
@@ -104,7 +104,7 @@ public class GameSettingsEditor : Editor
 
         if (GUILayout.Button("Reset Soil to Default"))
         {
-            gameSettings.SoilTypeChances = new SoilTypeChance[]
+            gameSettings.SoilInfo = new SoilInfo[]
             {
                 new() { Type = SoilType.Fertile, Chance = 0.6f },
                 new() { Type = SoilType.Rocky, Chance = 0.3f },

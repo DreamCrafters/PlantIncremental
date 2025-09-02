@@ -15,21 +15,21 @@ public class PlantRarityChanceDrawer : PropertyDrawer
         float rawValue = chanceProperty.floatValue;
         float normalizedValue = GetNormalizedValue(property, rawValue);
 
-        // Разделяем rect на три части: Rarity, Slider, Normalized%
-        var normalizedWidth = 50f;
-        var rarityWidth = (position.width - normalizedWidth) * 0.5f;
-        var sliderWidth = (position.width - normalizedWidth) * 0.5f;
+        // Высота одной строки
+        float lineHeight = EditorGUIUtility.singleLineHeight;
+        float spacing = EditorGUIUtility.standardVerticalSpacing;
 
-        var rarityRect = new Rect(position.x, position.y, rarityWidth - 2, position.height);
-        var chanceRect = new Rect(position.x + rarityWidth, position.y, sliderWidth - 2, position.height);
-        var normalizedPercentRect = new Rect(position.x + rarityWidth + sliderWidth, position.y, normalizedWidth, position.height);
+        // Создаем прямоугольники для каждой строки
+        var rarityRect = new Rect(position.x, position.y, position.width, lineHeight);
+        var chanceRect = new Rect(position.x, position.y + lineHeight + spacing, position.width - 60f, lineHeight);
+        var normalizedPercentRect = new Rect(position.x + position.width - 55f, position.y + lineHeight + spacing, 55f, lineHeight);
 
         // Отображаем поля
-        EditorGUI.PropertyField(rarityRect, rarityProperty, GUIContent.none);
+        EditorGUI.PropertyField(rarityRect, rarityProperty, new GUIContent("Редкость"));
         
         // Для Chance показываем как слайдер с процентами
         float chanceValue = chanceProperty.floatValue;
-        chanceValue = EditorGUI.Slider(chanceRect, chanceValue, 0f, 1f);
+        chanceValue = EditorGUI.Slider(chanceRect, new GUIContent("Шанс"), chanceValue, 0f, 1f);
         chanceProperty.floatValue = chanceValue;
 
         // Нормализованные проценты выделяем цветом
@@ -43,7 +43,8 @@ public class PlantRarityChanceDrawer : PropertyDrawer
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        return EditorGUIUtility.singleLineHeight;
+        // Возвращаем высоту для двух строк с отступом
+        return EditorGUIUtility.singleLineHeight * 2 + EditorGUIUtility.standardVerticalSpacing;
     }
 
     private float GetNormalizedValue(SerializedProperty currentProperty, float rawValue)

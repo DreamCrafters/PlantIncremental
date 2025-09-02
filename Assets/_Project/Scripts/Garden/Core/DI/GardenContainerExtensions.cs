@@ -8,11 +8,19 @@ public static class GardenContainerExtensions
         // Регистрация настроек
         builder.RegisterInstance(gameSettings);
 
-        // Регистрация сервисов
+        // Регистрация основных сервисов
+        builder.Register<ITimeService, TimeService>(Lifetime.Singleton);
         builder.Register<ISaveService, SaveService>(Lifetime.Singleton);
         builder.Register<IEconomyService, EconomyService>(Lifetime.Singleton);
         builder.Register<IRewardService, RewardService>(Lifetime.Singleton);
         builder.Register<IGridService, GridService>(Lifetime.Singleton);
+        
+        // Регистрация новых сервисов управления растениями
+        builder.Register<IPlantGrowthManager, PlantGrowthManager>(Lifetime.Singleton);
+        builder.Register<IWateringManager, WateringManager>(Lifetime.Singleton);
+        builder.Register<IPlantMechanicsFactory, PlantMechanicsFactory>(Lifetime.Singleton);
+        
+        // Регистрация старых сервисов для совместимости (если они еще используются)
         builder.Register<IPlantGrowthService, PlantGrowthService>(Lifetime.Singleton);
         builder.Register<IWateringSystem, WateringSystem>(Lifetime.Singleton);
 
