@@ -63,7 +63,7 @@ Assets/_Project/Scripts/
 
 ### Watering System
 - **Watering Mechanics**: Plants require water every ~10 seconds or they wither
-- **Long Press UI**: `LongPressHandler` provides UI feedback during watering interactions
+- **Long Press UI**: `LocalInputHandler` provides comprehensive input handling including clicks, hover effects, and long press interactions for watering
 - **State Tracking**: Plants track `TimeSinceLastWatering` and transition states accordingly
 
 ## Key Dependencies
