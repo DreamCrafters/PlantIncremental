@@ -8,7 +8,8 @@ using VContainer;
 public class WateringCursorView : MonoBehaviour
 {
     [Header("Settings")]
-    [SerializeField] private GameObject _cursorIcon;
+    [SerializeField] private ParticleSystem _wateringEffect;
+    [SerializeField] private SpriteRenderer _cursorIcon;
     [SerializeField] private Vector3 _cursorOffset = Vector3.zero;
     [SerializeField] private bool _followWorldPosition = true;
 
@@ -34,7 +35,7 @@ public class WateringCursorView : MonoBehaviour
         }
 
         // Изначально скрываем иконку
-        _cursorIcon.SetActive(false);
+        _cursorIcon.enabled = false;
 
         // Подписываемся на состояние визуализации полива
         _wateringVisualizationService.IsWateringVisualizationActive
@@ -65,12 +66,6 @@ public class WateringCursorView : MonoBehaviour
         _disposables?.Dispose();
     }
 
-    // Методы для настройки в инспекторе или через код
-    public void SetCursorIcon(GameObject icon)
-    {
-        _cursorIcon = icon;
-    }
-
     public void SetCursorOffset(Vector3 offset)
     {
         _cursorOffset = offset;
@@ -85,7 +80,7 @@ public class WateringCursorView : MonoBehaviour
     {
         if (_cursorIcon != null)
         {
-            _cursorIcon.SetActive(active);
+            _cursorIcon.enabled = active;
 
             if (active)
             {
@@ -98,6 +93,14 @@ public class WateringCursorView : MonoBehaviour
                     UpdateIconScreenPosition(_globalInputService.ScreenPosition.Value);
                 }
             }
+        }
+
+        if (_wateringEffect != null)
+        {
+            if (active)
+                _wateringEffect.Play();
+            else
+                _wateringEffect.Stop();
         }
     }
 
