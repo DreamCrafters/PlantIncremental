@@ -14884,9 +14884,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _baseRenderer: {fileID: 7341407859138271158}
   _soilRenderer: {fileID: 2231733407102879368}
-  _fertileSprite: {fileID: 21300000, guid: 4e7da883518ea4cd79eca342732427e5, type: 3}
-  _rockySprite: {fileID: 21300000, guid: 18c4e9b77ec6f431fa5b56a4c0033576, type: 3}
-  _unsuitableSprite: {fileID: 21300000, guid: bdce4a2d353414ec481914943f4833cb, type: 3}
+  _fertileSprite: {fileID: 21300000, guid: 3f29a4767cfe54e349f9ce4eae0839c3, type: 3}
+  _rockySprite: {fileID: 21300000, guid: 9a40c53cec0644f76b6c52e83a2aead0, type: 3}
+  _unsuitableSprite: {fileID: 21300000, guid: 66ebc052cf85e44e6838deb8401fdbd2, type: 3}
   _normalColor: {r: 1, g: 1, b: 1, a: 1}
   _highlightColor: {r: 1, g: 1, b: 0.8, a: 0.5}
   _plantEffect: {fileID: 2602439916783443881}

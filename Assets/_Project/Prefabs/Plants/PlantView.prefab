@@ -50,7 +50,6 @@ MonoBehaviour:
   _visualTransform: {fileID: 7846020131320770559}
   _wateringIcon: {fileID: 6087384417921686249}
   _witheredIcon: {fileID: 0}
-  _growthAnimationDuration: 0.5
   _harvestAnimationDuration: 0.3
 --- !u!1 &6087384417921686249
 GameObject:
@@ -79,8 +78,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0.9, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 7846020131320770559}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -125,7 +124,7 @@ SpriteRenderer:
   m_SortingLayerID: -1576159661
   m_SortingLayer: 2
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 9ea72647c24be493ba6f15a9cd2a24ae, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 8dc0ce9d3820c42e782dd9c2c536f143, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
