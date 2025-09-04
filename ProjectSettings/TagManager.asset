@@ -47,3 +47,6 @@ TagManager:
   - name: Plant
     uniqueID: 2718807635
     locked: 0
+  - name: WateringCan
+    uniqueID: 2390151675
+    locked: 0
