@@ -36,6 +36,7 @@ public class InputService : IInputService, ITickable, ILateTickable, IDisposable
     private readonly Dictionary<(Vector2Int, KeyCode, InputTiming), Dictionary<int, ReactiveProperty<bool>>> _cellButtonStateSubscriptions = new();
     private readonly Dictionary<(Vector2Int, KeyCode, InputTiming), Dictionary<int, Subject<Unit>>> _cellButtonCompleteSubscriptions = new();
     private readonly Dictionary<int, float> _cellButtonCompleteDurations = new(); // subscriptionId -> duration
+    private readonly Dictionary<int, float> _cellButtonCompleteLastFiredTime = new(); // subscriptionId -> last fire time
     private readonly Dictionary<(Vector2Int, KeyCode, InputTiming), bool> _cellButtonStates = new();
     private readonly Dictionary<(Vector2Int, KeyCode, InputTiming), float> _cellButtonPressStartTime = new();
 
@@ -92,6 +93,7 @@ public class InputService : IInputService, ITickable, ILateTickable, IDisposable
         _cellButtonStateSubscriptions.Clear();
         _cellButtonCompleteSubscriptions.Clear();
         _cellButtonCompleteDurations.Clear();
+        _cellButtonCompleteLastFiredTime.Clear();
         _cellButtonStates.Clear();
         _cellButtonPressStartTime.Clear();
 
@@ -475,6 +477,15 @@ public class InputService : IInputService, ITickable, ILateTickable, IDisposable
                 // Убираем время нажатия при отпускании
                 _cellButtonPressStartTime.Remove(cellKey);
                 
+                // Очищаем времена последнего срабатывания для всех подписок на complete события
+                if (_cellButtonCompleteSubscriptions.TryGetValue(cellKey, out var cellCompleteSubscriptions))
+                {
+                    foreach (var subscriptionId in cellCompleteSubscriptions.Keys)
+                    {
+                        _cellButtonCompleteLastFiredTime.Remove(subscriptionId);
+                    }
+                }
+                
                 if (_cellButtonUpSubscriptions.TryGetValue(cellKey, out var cellUpSubscriptions))
                 {
                     foreach (var subscription in cellUpSubscriptions.Values)
@@ -487,13 +498,12 @@ public class InputService : IInputService, ITickable, ILateTickable, IDisposable
             // Обрабатываем длительное нажатие
             if (isPressed && _cellButtonPressStartTime.TryGetValue(cellKey, out var pressStartTime))
             {
-                float pressDuration = Time.time - pressStartTime;
+                float currentTime = Time.time;
+                float pressDuration = currentTime - pressStartTime;
                 
                 // Проверяем каждую подписку на complete события для этой клетки
                 if (_cellButtonCompleteSubscriptions.TryGetValue(cellKey, out var cellCompleteSubscriptions))
                 {
-                    var subscribersToRemove = new List<int>();
-                    
                     foreach (var kvpSub in cellCompleteSubscriptions)
                     {
                         int subscriptionId = kvpSub.Key;
@@ -502,26 +512,32 @@ public class InputService : IInputService, ITickable, ILateTickable, IDisposable
                         // Получаем длительность для этой конкретной подписки
                         if (_cellButtonCompleteDurations.TryGetValue(subscriptionId, out var requiredDuration))
                         {
-                            // Проверяем, прошло ли достаточно времени для этой подписки
+                            // Проверяем, прошло ли достаточно времени с начала нажатия
                             if (pressDuration >= requiredDuration)
                             {
-                                subscription.OnNext(Unit.Default);
-                                subscribersToRemove.Add(subscriptionId);
+                                // Получаем время последнего срабатывания
+                                bool shouldFire = false;
+                                if (_cellButtonCompleteLastFiredTime.TryGetValue(subscriptionId, out var lastFireTime))
+                                {
+                                    // Проверяем, прошло ли достаточно времени с последнего срабатывания
+                                    if (currentTime - lastFireTime >= requiredDuration)
+                                    {
+                                        shouldFire = true;
+                                    }
+                                }
+                                else
+                                {
+                                    // Первое срабатывание для этой подписки
+                                    shouldFire = true;
+                                }
+                                
+                                if (shouldFire)
+                                {
+                                    subscription.OnNext(Unit.Default);
+                                    _cellButtonCompleteLastFiredTime[subscriptionId] = currentTime;
+                                }
                             }
                         }
-                    }
-                    
-                    // Убираем сработавшие подписки, чтобы они не срабатывали повторно
-                    foreach (var subscriptionId in subscribersToRemove)
-                    {
-                        cellCompleteSubscriptions.Remove(subscriptionId);
-                        _cellButtonCompleteDurations.Remove(subscriptionId);
-                    }
-                    
-                    // Если все подписки сработали, убираем время нажатия
-                    if (cellCompleteSubscriptions.Count == 0)
-                    {
-                        _cellButtonPressStartTime.Remove(cellKey);
                     }
                 }
             }
