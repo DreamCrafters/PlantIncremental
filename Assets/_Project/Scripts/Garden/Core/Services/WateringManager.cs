@@ -87,7 +87,7 @@ public class WateringManager : IWateringManager
         // Останавливаем предыдущий таймер
         StopWitherTimer(plant);
 
-        var witherTimer = _timeService.CreateTimer(TimeSpan.FromSeconds(_gameSettings.WitheringDuration))
+        var witherTimer = _timeService.CreateTimer(TimeSpan.FromSeconds(_gameSettings.PlantSettings?.WitheringDuration ?? 10f))
             .Subscribe(_ =>
             {
                 if (NeedsWatering(plant))

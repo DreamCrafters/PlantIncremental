@@ -91,7 +91,7 @@ public class GameInitializer : IInitializable, IDisposable
     private void SetupAutoSave()
     {
         // Автосохранение каждые N секунд
-        Observable.Interval(TimeSpan.FromSeconds(_settings.AutoSaveInterval))
+        Observable.Interval(TimeSpan.FromSeconds(_settings.GameplaySettings?.AutoSaveInterval ?? 30f))
             .Subscribe(_ => SaveGame())
             .AddTo(_disposables);
 

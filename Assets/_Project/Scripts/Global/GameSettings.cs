@@ -1,76 +1,21 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "GameSettings", menuName = "Game/Settings")]
+[CreateAssetMenu(fileName = "GameSettings", menuName = "Game/Settings/Settings")]
 public class GameSettings : ScriptableObject
 {
-    [Header("Grid View")]
-    public Vector2Int GridSize = new(6, 6);
-    public GridDisplayType DisplayType = GridDisplayType.Orthogonal;
-    public Vector2 OrthographicTileSize = new(0.5f, 0.25f);
-    public Vector2 IsometricTileSize = new(0.5f, 0.25f);
-    [Tooltip("Отступ от края карты до края камеры (в мировых единицах)")]
-    public float CameraMargin = 1.0f;
-
-    [Header("Interaction")]
-    [Tooltip("Кулдаун между взаимодействиями (в секундах)")]
-    [Min(0)] public float InteractionCooldown = 0.5f;
-    [Min(0)] public float WateringDuration = 0.5f;
-
-    [Header("Save")]
-    public float AutoSaveInterval = 30f;
-
-    [Header("Day Cycle")]
-    public float DayDuration = 180f;
-
-    [Header("Plants")]
-    public PlantView ViewPrefab;
-    [Min(0)] public float WitheringDuration = 10f;
-    public PlantData[] AvailablePlants;
-    [Tooltip("Шанс выпадения растений по редкости (от 0 до 1). В инспекторе отображаются нормализованные значения")]
-    public PlantRarityChance[] RarityChances = new PlantRarityChance[]
-    {
-        new() { Rarity = PlantRarity.Common, Chance = 0.6f },
-        new() { Rarity = PlantRarity.Uncommon, Chance = 0.25f },
-        new() { Rarity = PlantRarity.Rare, Chance = 0.1f },
-        new() { Rarity = PlantRarity.Epic, Chance = 0.04f },
-        new() { Rarity = PlantRarity.Legendary, Chance = 0.01f }
-    };
-    [Tooltip("Шанс выпадения почвы по редкости (от 0 до 1). В инспекторе отображаются нормализованные значения")]
-    public SoilInfo[] SoilInfo = new SoilInfo[]
-    {
-        new() { Type = SoilType.Fertile, Chance = 0.6f },
-        new() { Type = SoilType.Rocky, Chance = 0.3f },
-        new() { Type = SoilType.Unsuitable, Chance = 0.1f },
-    };
+    [Header("Settings References")]
+    public GridSettings GridSettings;
+    public PlantSettings PlantSettings;
+    public SoilSettings SoilSettings;
+    public InteractionSettings InteractionSettings;
+    public GameplaySettings GameplaySettings;
 
     /// <summary>
     /// Получает нормализованные шансы редкости для использования в игровой логике
     /// </summary>
     public PlantRarityChance[] GetNormalizedRarityChances()
     {
-        if (RarityChances == null || RarityChances.Length == 0)
-            return new PlantRarityChance[0];
-
-        float totalChance = 0f;
-        foreach (var rarityChance in RarityChances)
-        {
-            totalChance += rarityChance.Chance;
-        }
-
-        if (totalChance <= 0f)
-            return new PlantRarityChance[0];
-
-        var normalizedChances = new PlantRarityChance[RarityChances.Length];
-        for (int i = 0; i < RarityChances.Length; i++)
-        {
-            normalizedChances[i] = new PlantRarityChance
-            {
-                Rarity = RarityChances[i].Rarity,
-                Chance = RarityChances[i].Chance / totalChance
-            };
-        }
-
-        return normalizedChances;
+        return PlantSettings != null ? PlantSettings.GetNormalizedRarityChances() : new PlantRarityChance[0];
     }
 
     /// <summary>
@@ -78,29 +23,7 @@ public class GameSettings : ScriptableObject
     /// </summary>
     public SoilInfo[] GetNormalizedSoilTypeChances()
     {
-        if (SoilInfo == null || SoilInfo.Length == 0)
-            return new SoilInfo[0];
-
-        float totalChance = 0f;
-        foreach (var soilChance in SoilInfo)
-        {
-            totalChance += soilChance.Chance;
-        }
-
-        if (totalChance <= 0f)
-            return new SoilInfo[0];
-
-        var normalizedChances = new SoilInfo[SoilInfo.Length];
-        for (int i = 0; i < SoilInfo.Length; i++)
-        {
-            normalizedChances[i] = new SoilInfo
-            {
-                Type = SoilInfo[i].Type,
-                Chance = SoilInfo[i].Chance / totalChance
-            };
-        }
-
-        return normalizedChances;
+        return SoilSettings != null ? SoilSettings.GetNormalizedSoilTypeChances() : new SoilInfo[0];
     }
 
     /// <summary>
@@ -108,22 +31,6 @@ public class GameSettings : ScriptableObject
     /// </summary>
     public System.Collections.Generic.Dictionary<PlantRarity, int> GetPlantCountByRarity()
     {
-        var counts = new System.Collections.Generic.Dictionary<PlantRarity, int>();
-        
-        if (AvailablePlants == null) return counts;
-
-        foreach (var plant in AvailablePlants)
-        {
-            if (plant != null)
-            {
-                if (!counts.ContainsKey(plant.Rarity))
-                {
-                    counts[plant.Rarity] = 0;
-                }
-                counts[plant.Rarity]++;
-            }
-        }
-
-        return counts;
+        return PlantSettings != null ? PlantSettings.GetPlantCountByRarity() : new System.Collections.Generic.Dictionary<PlantRarity, int>();
     }
 }

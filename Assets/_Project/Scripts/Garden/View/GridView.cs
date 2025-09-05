@@ -93,7 +93,7 @@ public class GridView : MonoBehaviour
 
         var localPos = GridToWorldPosition(position);
 
-        float z = (_gameSettings != null && _gameSettings.DisplayType == GridDisplayType.Isometric)
+        float z = (_gameSettings?.GridSettings != null && _gameSettings.GridSettings.DisplayType == GridDisplayType.Isometric)
             ? -(position.x + position.y) * 0.001f
             : -position.y * 0.001f;
 
@@ -245,7 +245,7 @@ public class GridView : MonoBehaviour
     /// </summary>
     private Vector3 GridToWorldPosition(Vector2Int gridPos)
     {
-        return _gameSettings == null || _gameSettings.DisplayType == GridDisplayType.Orthogonal
+        return _gameSettings?.GridSettings == null || _gameSettings.GridSettings.DisplayType == GridDisplayType.Orthogonal
             ? GridToWorldPositionOrthogonal(gridPos)
             : GridToWorldPositionIsometric(gridPos);
     }
@@ -281,7 +281,7 @@ public class GridView : MonoBehaviour
     // Вспомогательный метод для пересчета границ
     private Vector3 GridToWorldPositionForBounds(Vector2Int gridPos)
     {
-        return _gameSettings == null || _gameSettings.DisplayType == GridDisplayType.Orthogonal
+        return _gameSettings?.GridSettings == null || _gameSettings.GridSettings.DisplayType == GridDisplayType.Orthogonal
             ? GridToWorldPositionOrthogonal(gridPos)
             : GridToWorldPositionIsometric(gridPos);
     }
@@ -292,8 +292,8 @@ public class GridView : MonoBehaviour
     private Vector3 GridToWorldPositionOrthogonal(Vector2Int gridPos)
     {
         return new Vector3(
-            gridPos.x * _gameSettings.OrthographicTileSize.x,
-            gridPos.y * _gameSettings.OrthographicTileSize.y,
+            gridPos.x * (_gameSettings?.GridSettings?.OrthographicTileSize.x ?? 0.5f),
+            gridPos.y * (_gameSettings?.GridSettings?.OrthographicTileSize.y ?? 0.25f),
             0
         );
     }
@@ -303,8 +303,8 @@ public class GridView : MonoBehaviour
     /// </summary>
     private Vector3 GridToWorldPositionIsometric(Vector2Int gridPos)
     {
-        float xFactor = _gameSettings.IsometricTileSize.x;
-        float yFactor = _gameSettings.IsometricTileSize.y;
+        float xFactor = _gameSettings?.GridSettings?.IsometricTileSize.x ?? 0.5f;
+        float yFactor = _gameSettings?.GridSettings?.IsometricTileSize.y ?? 0.25f;
 
         float isoX = (gridPos.x - gridPos.y) * xFactor;
         float isoY = (gridPos.x + gridPos.y) * yFactor;
@@ -359,7 +359,7 @@ public class GridView : MonoBehaviour
             float height = _boundsMax.y - _boundsMin.y;
 
             // Используем настраиваемый отступ из GameSettings
-            float margin = _gameSettings != null ? _gameSettings.CameraMargin : 1.0f;
+            float margin = _gameSettings?.GridSettings?.CameraMargin ?? 1.0f;
 
             float halfW = width * 0.5f + margin;
             float halfH = height * 0.5f + margin;

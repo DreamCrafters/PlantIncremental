@@ -1,0 +1,80 @@
+using UnityEngine;
+
+[CreateAssetMenu(fileName = "PlantSettings", menuName = "Game/Settings/Plant Settings")]
+public class PlantSettings : ScriptableObject
+{
+    [Header("Plant Prefab")]
+    public PlantView ViewPrefab;
+    
+    [Header("Plant Lifecycle")]
+    [Min(0)] 
+    public float WitheringDuration = 10f;
+    
+    [Header("Available Plants")]
+    public PlantData[] AvailablePlants;
+    
+    [Header("Rarity Configuration")]
+    [Tooltip("Шанс выпадения растений по редкости (от 0 до 1). В инспекторе отображаются нормализованные значения")]
+    public PlantRarityChance[] RarityChances = new PlantRarityChance[]
+    {
+        new() { Rarity = PlantRarity.Common, Chance = 0.6f },
+        new() { Rarity = PlantRarity.Uncommon, Chance = 0.25f },
+        new() { Rarity = PlantRarity.Rare, Chance = 0.1f },
+        new() { Rarity = PlantRarity.Epic, Chance = 0.04f },
+        new() { Rarity = PlantRarity.Legendary, Chance = 0.01f }
+    };
+
+    /// <summary>
+    /// Получает нормализованные шансы редкости для использования в игровой логике
+    /// </summary>
+    public PlantRarityChance[] GetNormalizedRarityChances()
+    {
+        if (RarityChances == null || RarityChances.Length == 0)
+            return new PlantRarityChance[0];
+
+        float totalChance = 0f;
+        foreach (var rarityChance in RarityChances)
+        {
+            totalChance += rarityChance.Chance;
+        }
+
+        if (totalChance <= 0f)
+            return new PlantRarityChance[0];
+
+        var normalizedChances = new PlantRarityChance[RarityChances.Length];
+        for (int i = 0; i < RarityChances.Length; i++)
+        {
+            normalizedChances[i] = new PlantRarityChance
+            {
+                Rarity = RarityChances[i].Rarity,
+                Chance = RarityChances[i].Chance / totalChance
+            };
+        }
+
+        return normalizedChances;
+    }
+
+    /// <summary>
+    /// Получает количество растений каждой редкости
+    /// </summary>
+    public System.Collections.Generic.Dictionary<PlantRarity, int> GetPlantCountByRarity()
+    {
+        var counts = new System.Collections.Generic.Dictionary<PlantRarity, int>();
+        
+        if (AvailablePlants == null) return counts;
+
+        foreach (var plant in AvailablePlants)
+        {
+            if (plant != null)
+            {
+                if (!counts.ContainsKey(plant.Rarity))
+                {
+                    counts[plant.Rarity] = 0;
+                }
+                counts[plant.Rarity]++;
+            }
+        }
+
+        return counts;
+    }
+}

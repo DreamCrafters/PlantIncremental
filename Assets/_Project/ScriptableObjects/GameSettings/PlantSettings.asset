@@ -9,18 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7891e41b2d96749f186e7075e995bc10, type: 3}
-  m_Name: GameSettings
+  m_Script: {fileID: 11500000, guid: 384e677085455495ca54c59e6c5af323, type: 3}
+  m_Name: PlantSettings
   m_EditorClassIdentifier: 
-  GridSize: {x: 3, y: 3}
-  DisplayType: 1
-  OrthographicTileSize: {x: 1.1, y: 1.1}
-  IsometricTileSize: {x: 0.5, y: 0.25}
-  CameraMargin: 1
-  InteractionCooldown: 0
-  WateringDuration: 1
-  AutoSaveInterval: 30
-  DayDuration: 180
   ViewPrefab: {fileID: 2957457302213695260, guid: d55f61d889a764b208ee005ba3f3b143, type: 3}
   WitheringDuration: 10
   AvailablePlants:
@@ -36,13 +27,3 @@ MonoBehaviour:
     Chance: 0.04
   - Rarity: 4
     Chance: 0.01
-  SoilInfo:
-  - Type: 0
-    GrowingSpeed: 1
-    Chance: 0.6
-  - Type: 1
-    GrowingSpeed: 0.5
-    Chance: 0.3
-  - Type: 2
-    GrowingSpeed: 0
-    Chance: 0.1

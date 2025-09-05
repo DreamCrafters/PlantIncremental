@@ -24,16 +24,16 @@ public class PlantFactory : IPlantFactory
             return null;
         }
 
-        if (_settings.ViewPrefab == null)
+        if (_settings.PlantSettings?.ViewPrefab == null)
         {
-            Debug.LogError("ViewPrefab is not configured in GameSettings");
+            Debug.LogError("ViewPrefab is not configured in PlantSettings");
             return null;
         }
 
         try
         {
             // Создаем view без установки позиции - позицией будет управлять клетка
-            var view = UnityEngine.Object.Instantiate(_settings.ViewPrefab);
+            var view = UnityEngine.Object.Instantiate(_settings.PlantSettings.ViewPrefab);
             if (view == null)
             {
                 Debug.LogError("Failed to instantiate plant view prefab");

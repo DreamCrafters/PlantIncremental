@@ -42,9 +42,9 @@ public class GridCell
     /// </summary>
     public float GetGrowthModifier(GameSettings settings)
     {
-        if (settings?.SoilInfo == null) return 1f;
+        if (settings.SoilSettings.SoilInfo == null) return 1f;
 
-        foreach (var soilInfo in settings.SoilInfo)
+        foreach (var soilInfo in settings.SoilSettings.SoilInfo)
         {
             if (soilInfo.Type == SoilType)
             {

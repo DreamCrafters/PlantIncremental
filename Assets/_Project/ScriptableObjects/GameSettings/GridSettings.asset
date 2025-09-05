@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10180c1d2f4e24a7ca53393b1b3eb44c, type: 3}
+  m_Name: GridSettings
+  m_EditorClassIdentifier: 
+  GridSize: {x: 3, y: 3}
+  DisplayType: 1
+  OrthographicTileSize: {x: 0.5, y: 0.25}
+  IsometricTileSize: {x: 0.5, y: 0.25}
+  CameraMargin: 1

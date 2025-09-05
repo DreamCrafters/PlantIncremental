@@ -62,7 +62,7 @@ public class GridPresenter : IInitializable, IDisposable
         var grid = _gridService.Grid.Value;
         if (grid == null) return;
 
-        _gridView.InitializeGrid(_settings.GridSize);
+        _gridView.InitializeGrid(_settings.GridSettings.GridSize);
 
         // Создаем визуальные клетки
         for (int x = 0; x < grid.GetLength(0); x++)
@@ -128,9 +128,9 @@ public class GridPresenter : IInitializable, IDisposable
     private void SubscribeToAllCellsInput()
     {
         // Подписываемся на левую кнопку мыши для всех клеток сетки
-        for (int x = 0; x < _settings.GridSize.x; x++)
+        for (int x = 0; x < _settings.GridSettings.GridSize.x; x++)
         {
-            for (int y = 0; y < _settings.GridSize.y; y++)
+            for (int y = 0; y < _settings.GridSettings.GridSize.y; y++)
             {
                 var position = new Vector2Int(x, y);
 
@@ -139,7 +139,7 @@ public class GridPresenter : IInitializable, IDisposable
                     .Subscribe(_ => HandleCellRightClick(position))
                     .AddTo(_disposables);
 
-                _inputService.SubscribeToCellButtonComplete(position, PlayerInput.WateringAction, InputTiming.LateTick, _settings.WateringDuration)
+                _inputService.SubscribeToCellButtonComplete(position, PlayerInput.WateringAction, InputTiming.LateTick, _settings.InteractionSettings.WateringDuration)
                     .Subscribe(_ => HandleCellLongPressComplete(position))
                     .AddTo(_disposables);
             }

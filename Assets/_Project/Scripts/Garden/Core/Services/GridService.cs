@@ -40,7 +40,7 @@ public class GridService : IGridService, IDisposable
     {
         if (!IsValidPosition(position))
         {
-            Debug.LogWarning($"Invalid grid position requested: {position}. Grid size: {_settings.GridSize}");
+            Debug.LogWarning($"Invalid grid position requested: {position}. Grid size: {_settings.GridSettings.GridSize}");
             return null;
         }
 
@@ -82,9 +82,9 @@ public class GridService : IGridService, IDisposable
             return false;
         }
 
-        if (_settings.ViewPrefab == null)
+        if (_settings.PlantSettings?.ViewPrefab == null)
         {
-            Debug.LogError("ViewPrefab is not configured in GameSettings");
+            Debug.LogError("ViewPrefab is not configured in PlantSettings");
             return false;
         }
 
@@ -284,12 +284,12 @@ public class GridService : IGridService, IDisposable
 
     private bool IsAbleToInteract()
     {
-        return Time.time - _lastInteractionTime > _settings.InteractionCooldown;
+        return Time.time - _lastInteractionTime > _settings.InteractionSettings.InteractionCooldown;
     }
 
     private GridCell[,] InitializeGrid()
     {
-        var size = _settings.GridSize;
+        var size = _settings.GridSettings?.GridSize ?? new Vector2Int(6, 6);
         var grid = new GridCell[size.x, size.y];
 
         for (int x = 0; x < size.x; x++)
@@ -323,7 +323,7 @@ public class GridService : IGridService, IDisposable
 
     private PlantData GetRandomPlantData()
     {
-        var plants = _settings.AvailablePlants;
+        var plants = _settings.PlantSettings?.AvailablePlants;
         if (plants == null || plants.Length == 0) return null;
 
         // Получаем случайную редкость с учётом шансов
@@ -381,7 +381,8 @@ public class GridService : IGridService, IDisposable
 
     private bool IsValidPosition(Vector2Int position)
     {
-        return position.x >= 0 && position.x < _settings.GridSize.x &&
-               position.y >= 0 && position.y < _settings.GridSize.y;
+        var gridSize = _settings.GridSettings?.GridSize ?? new Vector2Int(6, 6);
+        return position.x >= 0 && position.x < gridSize.x &&
+               position.y >= 0 && position.y < gridSize.y;
     }
 }
