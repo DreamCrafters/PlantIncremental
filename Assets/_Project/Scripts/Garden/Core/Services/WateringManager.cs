@@ -183,7 +183,21 @@ public class WateringManager : IWateringManager
         // Останавливаем предыдущий таймер роста
         StopGrowthTimer(plant);
 
-        var growthTimer = _timeService.CreateTimer(TimeSpan.FromSeconds(plant.Data.GrowthTime / growthModifier / 2))
+        // Защита от деления на ноль и переполнения TimeSpan
+        const float minModifier = 0.01f;
+        const float maxDurationSeconds = 86400f; // 24 часа максимум
+        
+        growthModifier = Mathf.Max(growthModifier, minModifier);
+        float durationSeconds = plant.Data.GrowthTime / growthModifier / 2;
+        durationSeconds = Mathf.Min(durationSeconds, maxDurationSeconds);
+        
+        if (durationSeconds <= 0 || float.IsInfinity(durationSeconds) || float.IsNaN(durationSeconds))
+        {
+            Debug.LogWarning($"Invalid growth duration calculated for plant {plant.Data.name}: {durationSeconds}. Using default 10 seconds.");
+            durationSeconds = 10f;
+        }
+
+        var growthTimer = _timeService.CreateTimer(TimeSpan.FromSeconds(durationSeconds))
             .Subscribe(_ =>
             {
                 // Через N секунд растение требует полива для следующей стадии

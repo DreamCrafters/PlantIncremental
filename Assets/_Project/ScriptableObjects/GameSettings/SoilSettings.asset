@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SoilInfo:
   - Type: 0
-    GrowingSpeed: 0
+    GrowingSpeed: 1
     Chance: 0.6
   - Type: 1
-    GrowingSpeed: 0
+    GrowingSpeed: 0.5
     Chance: 0.3
   - Type: 2
     GrowingSpeed: 0
