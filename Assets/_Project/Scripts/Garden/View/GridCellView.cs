@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UniRx;
 using UnityEngine;
@@ -11,10 +10,6 @@ using DG.Tweening;
 [RequireComponent(typeof(SpriteRenderer))]
 public class GridCellView : MonoBehaviour
 {
-    private readonly Subject<Unit> _onClick = new();
-    private readonly Subject<IPlantEntity> _onWateringStart = new();
-    private readonly Subject<IPlantEntity> _onWateringEnd = new();
-    private readonly Subject<IPlantEntity> _onWateringComplete = new();
     private readonly List<Tween> _activeTweens = new();
 
     [Header("Visual Components")]
@@ -38,70 +33,32 @@ public class GridCellView : MonoBehaviour
     // Состояние
     private PlantView _currentPlantView;
     private SoilType _currentSoilType;
-    private IPlantEntity _currentPlantEntity;
     private LocalInputHandler _inputHandler;
 
     // Кэш
     private Vector3 _originalScale;
 
-    public IObservable<Unit> OnClick => _onClick;
-    public IObservable<IPlantEntity> OnWateringStart => _onWateringStart;
-    public IObservable<IPlantEntity> OnWateringEnd => _onWateringEnd;
-    public IObservable<IPlantEntity> OnWateringComplete => _onWateringComplete;
-
     private void Awake()
     {
         _originalScale = transform.localScale;
-        
+
         // Добавляем компонент для обработки ввода
         if (gameObject.TryGetComponent(out _inputHandler) == false)
         {
             _inputHandler = gameObject.AddComponent<LocalInputHandler>();
         }
-        
-        // Настраиваем обработчик ввода для поддержки drag-to-water
-        _inputHandler.EnableDragToStart = false; // Будем управлять этим вручную для большего контроля
-        
+
         // Подписываемся на события ввода
-        _inputHandler.OnClick.Subscribe(OnCellClicked).AddTo(gameObject);
         _inputHandler.OnPointerEntered.Subscribe(OnCellPointerEnter).AddTo(gameObject);
         _inputHandler.OnPointerExited.Subscribe(OnCellPointerExit).AddTo(gameObject);
-        _inputHandler.OnLongPressStart.Subscribe(_ => OnLongPressStart()).AddTo(gameObject);
-        _inputHandler.OnLongPressEnd.Subscribe(_ => OnLongPressEnd()).AddTo(gameObject);
-        _inputHandler.OnLongPressComplete.Subscribe(_ => OnLongPressComplete()).AddTo(gameObject);
-    }
-
-    private void Update()
-    {
-        // Автоматический запуск поливки при drag и доступном для поливки растении
-        if (_inputHandler.IsDragging && _inputHandler.IsMouseOver && _currentPlantEntity != null && 
-            _currentPlantEntity.IsWaitingForWater && !_inputHandler.IsPressed)
-        {
-            _inputHandler.StartLongPress();
-        }
     }
 
     private void OnDestroy()
     {
         KillAllTweens();
-        _onClick?.Dispose();
-        _onWateringStart?.Dispose();
-        _onWateringEnd?.Dispose();
-        _onWateringComplete?.Dispose();
     }
 
     #region Input Event Handlers
-    
-    /// <summary>
-    /// Обработка клика по клетке
-    /// </summary>
-    private void OnCellClicked(PointerEventData eventData)
-    {
-        if (eventData.button == PointerEventData.InputButton.Left)
-        {
-            _onClick.OnNext(Unit.Default);
-        }
-    }
 
     /// <summary>
     /// Обработка наведения курсора
@@ -122,14 +79,6 @@ public class GridCellView : MonoBehaviour
         {
             _currentPlantView.SetHighlight(true);
         }
-        
-        // Если есть растение которое можно поливать и долгое нажатие активно - перезапускаем таймер
-        if (_currentPlantEntity != null && _currentPlantEntity.IsWaitingForWater)
-        {
-            _inputHandler.RestartLongPress();
-        }
-        
-        // Поддержка drag-to-water обрабатывается в Update
     }
 
     /// <summary>
@@ -150,51 +99,9 @@ public class GridCellView : MonoBehaviour
         {
             _currentPlantView.SetHighlight(false);
         }
-        
-        // При уходе курсора во время drag - отменяем долгое нажатие
-        if (_inputHandler.IsPressed && !Input.GetMouseButton(0))
-        {
-            _inputHandler.CancelLongPress();
-        }
     }
-    
+
     #endregion
-
-    /// <summary>
-    /// Обработка начала долгого нажатия
-    /// </summary>
-    private void OnLongPressStart()
-    {
-        if (_currentPlantEntity != null && _currentPlantEntity.IsWaitingForWater)
-        {
-            _onWateringStart.OnNext(_currentPlantEntity);
-        }
-    }
-
-    /// <summary>
-    /// Обработка окончания долгого нажатия (отпущена кнопка)
-    /// </summary>
-    private void OnLongPressEnd()
-    {
-        if (_currentPlantEntity != null)
-        {
-            _onWateringEnd.OnNext(_currentPlantEntity);
-        }
-    }
-
-    /// <summary>
-    /// Обработка завершения долгого нажатия (прошло нужное время)
-    /// </summary>
-    private void OnLongPressComplete()
-    {
-        if (_currentPlantEntity != null && _currentPlantEntity.IsWaitingForWater)
-        {
-            _onWateringComplete.OnNext(_currentPlantEntity);
-            
-            // Сбрасываем состояние для возможности начать новую поливку
-            _inputHandler.CompleteAndReset();
-        }
-    }
 
     /// <summary>
     /// Безопасно убивает все активные твины
@@ -287,7 +194,6 @@ public class GridCellView : MonoBehaviour
     /// </summary>
     public void SetPlantEntity(IPlantEntity plantEntity)
     {
-        _currentPlantEntity = plantEntity;
         if (plantEntity != null)
         {
             SetPlantView(plantEntity.View);

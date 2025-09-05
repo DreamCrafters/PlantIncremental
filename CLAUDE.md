@@ -1,10 +1,65 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides**New API Methods:**
+- `SubscribeToCellButtonDown(Vector2Int gridPosition, KeyCode keyCode, InputTiming timing)`
+- `SubscribeToCellButtonUp(Vector2Int gridPosition, KeyCode keyCode, InputTiming timing)`
+- `SubscribeToCellButtonState(Vector2Int gridPosition, KeyCode keyCode, InputTiming timing)`
+- `SubscribeToCellButtonComplete(Vector2Int gridPosition, KeyCode keyCode, InputTiming timing, float longPressDuration = 1.0f)` - настраиваемое время длительного нажатия
+
+**Key Features:**
+- Uses LocalInputHandler for precise cell detection instead of coordinate calculation
+- Events trigger only when mouse is over registered cell handlers (handler.IsMouseOver)
+- Customizable long press duration per subscription
+- Multiple long press events with different durations on same cell
+- Automatic cleanup when events trigger or button is released
+
+**Architecture:**
+- `LocalInputHandler`: Unity component on cell GameObjects with colliders
+- `InputService`: Central coordination of global input events with cell-specific handlers
+- Registration: Cells register via `RegisterCellHandler(gridPosition, handler)`
+- Detection: Uses Unity's pointer event system for accurate hit detectionance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
 This is a 2D incremental plant-growing game built in Unity 2022.3.25f1. Players plant seeds on a grid, water them, and harvest them for rewards. The architecture emphasizes reactive programming patterns and dependency injection.
+
+## Recent Changes
+
+### Input System Refactoring (September 2025)
+
+**Major Change**: Replaced fixed `OnCellClicked` events with flexible button subscription system for cells.
+
+**Before:**
+```csharp
+_inputService.OnCellClicked.Subscribe(HandleCellClick);
+_inputService.OnCellClickedLate.Subscribe(HandleCellClick);
+```
+
+**After:**
+```csharp
+// Subscribe to specific button for specific cell
+_inputService.SubscribeToCellButtonDown(new Vector2Int(0, 0), KeyCode.Mouse0, InputTiming.Tick)
+    .Subscribe(_ => HandleCellAction(new Vector2Int(0, 0)));
+
+// Subscribe to different buttons for same cell
+_inputService.SubscribeToCellButtonDown(position, PlayerInput.WateringAction, InputTiming.LateTick);
+_inputService.SubscribeToCellButtonDown(position, PlayerInput.PlantAction, InputTiming.LateTick);
+```
+
+**New API Methods:**
+- `SubscribeToCellButtonDown(Vector2Int gridPosition, KeyCode keyCode, InputTiming timing)`
+- `SubscribeToCellButtonUp(Vector2Int gridPosition, KeyCode keyCode, InputTiming timing)`
+- `SubscribeToCellButtonState(Vector2Int gridPosition, KeyCode keyCode, InputTiming timing)`
+- `SubscribeToCellButtonComplete(Vector2Int gridPosition, KeyCode keyCode, InputTiming timing)` - длительное нажатие (1 сек)
+
+**Benefits:**
+- Can bind any key/mouse button to any cell
+- Multiple actions per cell (left-click, right-click, keyboard keys)
+- Consistent with existing global button subscription system
+- More flexible for different game mechanics
+
+**Example Usage:**
+See `CellInputExamples.cs` for comprehensive usage patterns.
 
 ## Build and Development Commands
 
@@ -39,10 +94,19 @@ Assets/_Project/Scripts/
 │   ├── View/           # MonoBehaviour components for visual representation  
 │   ├── UI/             # UI components and views
 │   └── DI/             # Dependency injection configuration
+├── Input/              # Input handling system
+│   ├── Examples/       # Usage examples for input system
+│   └── ...
 └── SkillTree/          # Skill system (separate feature)
 ```
 
 ## Key Systems
+
+### Input System
+- **Global Input**: `SubscribeToButtonDown/Up/State(KeyCode, InputTiming)` for global key bindings
+- **Cell Input**: `SubscribeToCellButtonDown/Up/State(Vector2Int, KeyCode, InputTiming)` for cell-specific actions
+- **Timing**: `InputTiming.Tick` (early) vs `InputTiming.LateTick` (late) processing
+- **Player Keys**: `PlayerInput.WateringAction` (Mouse0), `PlayerInput.PlantAction` (Mouse1)
 
 ### Grid System
 - **Grid Configuration**: Size and display settings in `GameSettings` ScriptableObject

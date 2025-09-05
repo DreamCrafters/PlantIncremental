@@ -14,15 +14,15 @@ public class WateringCursorView : MonoBehaviour
     [SerializeField] private bool _followWorldPosition = true;
 
     private IWateringVisualizationService _wateringVisualizationService;
-    private GlobalInput _globalInputService;
+    private IInputService _inputService;
     private Camera _camera;
     private CompositeDisposable _disposables = new();
 
     [Inject]
-    public void Construct(IWateringVisualizationService wateringVisualizationService, GlobalInput globalInputService)
+    public void Construct(IWateringVisualizationService wateringVisualizationService, IInputService inputService)
     {
         _wateringVisualizationService = wateringVisualizationService;
-        _globalInputService = globalInputService;
+        _inputService = inputService;
         _camera = Camera.main;
     }
 
@@ -54,7 +54,7 @@ public class WateringCursorView : MonoBehaviour
         else
         {
             // Следуем за экранной позицией мыши
-            _globalInputService.ScreenPosition
+            _inputService.ScreenPositionLate
                 .Where(_ => _wateringVisualizationService.IsWateringVisualizationActive.Value)
                 .Subscribe(screenPos => UpdateIconScreenPosition(screenPos))
                 .AddTo(_disposables);
@@ -90,7 +90,7 @@ public class WateringCursorView : MonoBehaviour
                 }
                 else
                 {
-                    UpdateIconScreenPosition(_globalInputService.ScreenPosition.Value);
+                    UpdateIconScreenPosition(_inputService.ScreenPositionLate.Value);
                 }
             }
         }

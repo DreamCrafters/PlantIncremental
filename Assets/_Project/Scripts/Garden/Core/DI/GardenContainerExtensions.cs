@@ -8,7 +8,8 @@ public static class GardenContainerExtensions
         // Register game settings
         builder.RegisterInstance(gameSettings);
 
-        builder.Register<GlobalInput>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
+        // Register input services
+        builder.Register<InputService>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
 
         // Register core services
         builder.Register<ITimeService, TimeService>(Lifetime.Singleton);
@@ -16,11 +17,11 @@ public static class GardenContainerExtensions
         builder.Register<IEconomyService, EconomyService>(Lifetime.Singleton);
         builder.Register<IRewardService, RewardService>(Lifetime.Singleton);
         builder.Register<IGridService, GridService>(Lifetime.Singleton);
-        
+
         // Register plant management services
         builder.Register<IWateringManager, WateringManager>(Lifetime.Singleton);
         builder.Register<IPlantMechanicsFactory, PlantMechanicsFactory>(Lifetime.Singleton);
-        
+
         // Register input and visualization services
         builder.Register<IWateringVisualizationService, WateringVisualizationService>(Lifetime.Singleton);
 

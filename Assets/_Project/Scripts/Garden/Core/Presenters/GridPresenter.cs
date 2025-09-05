@@ -14,6 +14,7 @@ public class GridPresenter : IInitializable, IDisposable
     private readonly GridView _gridView;
     private readonly IWateringManager _wateringManager;
     private readonly IEconomyService _economyService;
+    private readonly IInputService _inputService;
     private readonly GameSettings _settings;
 
     private readonly CompositeDisposable _disposables = new();
@@ -24,12 +25,14 @@ public class GridPresenter : IInitializable, IDisposable
         IGridService gridService,
         IWateringManager wateringManager,
         IEconomyService economyService,
+        IInputService inputService,
         GridView gridView,
         GameSettings settings)
     {
         _gridService = gridService;
         _wateringManager = wateringManager;
         _economyService = economyService;
+        _inputService = inputService;
         _gridView = gridView;
         _settings = settings;
     }
@@ -42,6 +45,12 @@ public class GridPresenter : IInitializable, IDisposable
 
     public void Dispose()
     {
+        // Отменяем регистрацию всех обработчиков ввода
+        foreach (var kvp in _cellViews)
+        {
+            _inputService.UnregisterCellHandler(kvp.Key);
+        }
+
         _disposables?.Dispose();
     }
 
@@ -67,12 +76,12 @@ public class GridPresenter : IInitializable, IDisposable
                 // Настраиваем длительность долгого нажатия для полива
                 if (cellView.TryGetComponent(out LocalInputHandler inputHandler))
                 {
-                    inputHandler.LongPressDuration = _settings.WateringDuration;
+                    // Регистрируем обработчик в InputService
+                    _inputService.RegisterCellHandler(position, inputHandler);
                 }
 
                 _cellViews[position] = cellView;
                 UpdateCellVisual(cellView, cell);
-                SubscribeToCellClick(cellView, position);
             }
         }
 
@@ -98,46 +107,49 @@ public class GridPresenter : IInitializable, IDisposable
         _gridService.OnPlantDestroyed
             .Subscribe(evt => OnPlantDestroyed(evt))
             .AddTo(_disposables);
-            
+
         // Подписка на завершение полива из WateringManager
         _wateringManager.OnPlantWatered
-            .Subscribe(plant => OnPlantWatered(plant))
+            .Subscribe(plant => OnWateringCompleted(plant))
             .AddTo(_disposables);
-            
+
         // Подписка на увядание растений
         _wateringManager.OnPlantWithered
             .Subscribe(plant => OnPlantWithered(plant))
             .AddTo(_disposables);
+
+        // Подписываемся на события ввода через InputService
+        SubscribeToAllCellsInput();
     }
 
     /// <summary>
-    /// Подписывается на клики по конкретной клетке
+    /// Подписывается на ввод для всех клеток сетки
     /// </summary>
-    private void SubscribeToCellClick(GridCellView cellView, Vector2Int position)
+    private void SubscribeToAllCellsInput()
     {
-        cellView.OnClick
-            .Subscribe(_ => HandleCellClick(position))
-            .AddTo(_disposables);
-            
-        // Подписываемся на события полива
-        cellView.OnWateringStart
-            .Subscribe(plant => OnWateringStarted(plant))
-            .AddTo(_disposables);
-            
-        cellView.OnWateringEnd
-            .Subscribe(plant => OnWateringEnded(plant))
-            .AddTo(_disposables);
-            
-        // Подписываемся на завершение долгого нажатия (мгновенный полив)
-        cellView.OnWateringComplete
-            .Subscribe(plant => OnWateringCompleted(plant))
-            .AddTo(_disposables);
+        // Подписываемся на левую кнопку мыши для всех клеток сетки
+        for (int x = 0; x < _settings.GridSize.x; x++)
+        {
+            for (int y = 0; y < _settings.GridSize.y; y++)
+            {
+                var position = new Vector2Int(x, y);
+
+                // Правая кнопка мыши - посадка
+                _inputService.SubscribeToCellButtonDown(position, PlayerInput.PlantAction, InputTiming.LateTick)
+                    .Subscribe(_ => HandleCellRightClick(position))
+                    .AddTo(_disposables);
+
+                _inputService.SubscribeToCellButtonComplete(position, PlayerInput.WateringAction, InputTiming.LateTick, _settings.WateringDuration)
+                    .Subscribe(_ => HandleCellLongPressComplete(position))
+                    .AddTo(_disposables);
+            }
+        }
     }
 
     /// <summary>
-    /// Обрабатывает клик по клетке
+    /// Обрабатывает правый клик по клетке
     /// </summary>
-    private void HandleCellClick(Vector2Int position)
+    private void HandleCellRightClick(Vector2Int position)
     {
         var cell = _gridService.GetCell(position);
         if (cell == null) return;
@@ -160,6 +172,18 @@ public class GridPresenter : IInitializable, IDisposable
                     TryDestroyAt(position);
                     break;
             }
+        }
+    }
+
+    /// <summary>
+    /// Обрабатывает завершение долгого нажатия на клетке (полив)
+    /// </summary>
+    private void HandleCellLongPressComplete(Vector2Int position)
+    {
+        var cell = _gridService.GetCell(position);
+        if (cell?.Plant != null && cell.Plant.IsWaitingForWater)
+        {
+            _wateringManager.WaterPlant(cell.Plant);
         }
     }
 
@@ -223,7 +247,7 @@ public class GridPresenter : IInitializable, IDisposable
     {
         cellView.UpdateVisual(cell);
         cellView.ShowPlant(cell.IsEmpty == false);
-        
+
         // Если в клетке есть растение, привязываем его entity к клетке
         if (cell.IsEmpty == false && cell.Plant != null)
         {
@@ -242,10 +266,10 @@ public class GridPresenter : IInitializable, IDisposable
     {
         // Только визуальные эффекты и UI логика
         var reward = evt.Reward;
-        
+
         // Показываем всплывающее сообщение о награде
         ShowRewardPopup(evt.Position, reward);
-        
+
         // Визуальный эффект сбора урожая
         PlayHarvestEffect(evt.Position);
     }
@@ -257,7 +281,7 @@ public class GridPresenter : IInitializable, IDisposable
     {
         // Визуальные эффекты уничтожения
         PlayDestroyEffect(evt.Position);
-        
+
         // Дополнительно можно показать уведомление игроку
         // например "Увядшее растение удалено"
     }
@@ -278,13 +302,6 @@ public class GridPresenter : IInitializable, IDisposable
     }
 
     /// <summary>
-    /// Обработка события завершения полива растения
-    /// </summary>
-    private void OnPlantWatered(IPlantEntity plant)
-    {
-    }
-    
-    /// <summary>
     /// Обработка события увядания растения
     /// </summary>
     private void OnPlantWithered(IPlantEntity plant)
@@ -292,29 +309,12 @@ public class GridPresenter : IInitializable, IDisposable
         // Можем добавить визуальные эффекты или уведомления
         Debug.Log($"Plant withered at position {plant.Position}");
     }
-    
-    /// <summary>
-    /// Обработка начала полива
-    /// </summary>
-    private void OnWateringStarted(IPlantEntity plant)
-    {
-        // Здесь можно добавить визуальные эффекты начала полива
-    }
-    
-    /// <summary>
-    /// Обработка окончания полива
-    /// </summary>
-    private void OnWateringEnded(IPlantEntity plant)
-    {
-        // Здесь можно добавить визуальные эффекты окончания полива
-    }
-    
+
     /// <summary>
     /// Обработка завершения полива (мгновенный полив)
     /// </summary>
     private void OnWateringCompleted(IPlantEntity plant)
     {
-        // Поливаем растение через менеджер
         _wateringManager.WaterPlant(plant);
     }
 

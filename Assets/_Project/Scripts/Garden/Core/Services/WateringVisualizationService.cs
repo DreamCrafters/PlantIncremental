@@ -8,7 +8,7 @@ using VContainer;
 /// </summary>
 public class WateringVisualizationService : IWateringVisualizationService
 {
-    private readonly GlobalInput _globalInputService;
+    private readonly IInputService _inputService;
     private readonly CompositeDisposable _disposables = new();
     
     // Реактивные свойства
@@ -20,9 +20,9 @@ public class WateringVisualizationService : IWateringVisualizationService
     private readonly Subject<Unit> _onWateringVisualizationStopped = new();
     
     [Inject]
-    public WateringVisualizationService(GlobalInput globalInputService)
+    public WateringVisualizationService(IInputService inputService)
     {
-        _globalInputService = globalInputService;
+        _inputService = inputService;
         Initialize();
     }
     
@@ -34,16 +34,16 @@ public class WateringVisualizationService : IWateringVisualizationService
     private void Initialize()
     {
         // Настраиваем автоматическое управление визуализацией по нажатию мыши
-        _globalInputService.OnMainButtonDown
+        _inputService.SubscribeToButtonDown(PlayerInput.WateringAction, InputTiming.Tick)
             .Subscribe(_ => StartWateringVisualization())
             .AddTo(_disposables);
-            
-        _globalInputService.OnMainButtonUp
+
+        _inputService.SubscribeToButtonUp(PlayerInput.WateringAction, InputTiming.Tick)
             .Subscribe(_ => StopWateringVisualization())
             .AddTo(_disposables);
         
         // Обновляем позицию курсора полива при движении мыши, но только когда визуализация активна
-        _globalInputService.WorldPosition
+        _inputService.WorldPositionLate
             .Where(_ => _isWateringVisualizationActive.Value)
             .Subscribe(worldPos => UpdateWateringCursorPosition(worldPos))
             .AddTo(_disposables);
@@ -60,7 +60,7 @@ public class WateringVisualizationService : IWateringVisualizationService
         if (!_isWateringVisualizationActive.Value)
         {
             _isWateringVisualizationActive.Value = true;
-            _wateringCursorWorldPosition.Value = _globalInputService.WorldPosition.Value;
+            _wateringCursorWorldPosition.Value = _inputService.WorldPositionLate.Value;
             _onWateringVisualizationStarted.OnNext(Unit.Default);
         }
     }

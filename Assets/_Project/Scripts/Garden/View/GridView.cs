@@ -9,6 +9,7 @@ using VContainer;
 public class GridView : MonoBehaviour
 {
     [Inject] private readonly GameSettings _gameSettings;
+    [Inject] private readonly IInputService _inputService;
 
     [Header("Prefabs")]
     [SerializeField] private GridCellView _cellPrefab;
@@ -83,6 +84,7 @@ public class GridView : MonoBehaviour
         }
 
         GridCellView cellView = Instantiate(_cellPrefab, _gridContainer);
+        
         if (cellView == null)
         {
             Debug.LogError("Failed to instantiate cell view!");
