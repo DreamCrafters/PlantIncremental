@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UniRx;
 using UnityEngine;
 using VContainer.Unity;
@@ -280,12 +281,6 @@ public class InputService : IInputService, ITickable, ILateTickable, IDisposable
     {
         if (handler == null) return;
 
-        // Отписываемся от старого обработчика если он есть
-        if (_cellHandlers.TryGetValue(gridPosition, out var oldHandler))
-        {
-            UnsubscribeFromHandler(gridPosition, oldHandler);
-        }
-
         // Регистрируем новый обработчик
         _cellHandlers[gridPosition] = handler;
     }
@@ -294,7 +289,6 @@ public class InputService : IInputService, ITickable, ILateTickable, IDisposable
     {
         if (_cellHandlers.TryGetValue(gridPosition, out var handler))
         {
-            UnsubscribeFromHandler(gridPosition, handler);
             _cellHandlers.Remove(gridPosition);
         }
     }
@@ -471,6 +465,23 @@ public class InputService : IInputService, ITickable, ILateTickable, IDisposable
                 }
             }
 
+            // Обрабатываем начало длительного нажатия при наведении мыши (кнопка уже зажата)
+            if (isPressed && wasPressed && !_cellButtonPressStartTime.ContainsKey(cellKey))
+            {
+                // Кнопка была зажата, но таймера для этой клетки нет - значит мышь только что зашла на клетку
+                // Запоминаем время начала нажатия для этой клетки
+                _cellButtonPressStartTime[cellKey] = Time.time;
+                
+                // Вызываем событие нажатия для клетки (как будто кнопку только что нажали над этой клеткой)
+                if (_cellButtonDownSubscriptions.TryGetValue(cellKey, out var cellDownSubscriptions))
+                {
+                    foreach (var subscription in cellDownSubscriptions.Values)
+                    {
+                        subscription.OnNext(Unit.Default);
+                    }
+                }
+            }
+
             // Обрабатываем события отпускания для клетки
             if (!isPressed && wasPressed)
             {
@@ -542,11 +553,63 @@ public class InputService : IInputService, ITickable, ILateTickable, IDisposable
                 }
             }
         }
-    }
 
-    private void UnsubscribeFromHandler(Vector2Int gridPosition, LocalInputHandler handler)
-    {
-        // В данной реализации подписки автоматически очищаются через CompositeDisposable
-        // При необходимости здесь можно добавить более специфичную логику отписки
+        // Обрабатываем случаи, когда кнопка зажата, но мышь больше не над клеткой
+        // Очищаем таймеры для клеток, с которых ушла мышь, пока кнопка была зажата
+        if (isPressed && wasPressed)
+        {
+            // Создаем копию ключей для безопасного удаления во время итерации
+            var pressStartTimeKeys = _cellButtonPressStartTime.Keys.ToList();
+            
+            foreach (var cellKey in pressStartTimeKeys)
+            {
+                // Проверяем, что это тот же keyCode и timing
+                if (cellKey.Item2 != keyCode || cellKey.Item3 != timing) continue;
+                
+                var gridPosition = cellKey.Item1;
+                
+                // Проверяем, есть ли еще обработчик для этой клетки и находится ли над ней мышь
+                if (_cellHandlers.TryGetValue(gridPosition, out var handler))
+                {
+                    // Если мышь больше не над клеткой, убираем таймер
+                    if (!handler.IsMouseOver)
+                    {
+                        _cellButtonPressStartTime.Remove(cellKey);
+                        
+                        // Очищаем времена последнего срабатывания для этой клетки
+                        if (_cellButtonCompleteSubscriptions.TryGetValue(cellKey, out var cellCompleteSubscriptions))
+                        {
+                            foreach (var subscriptionId in cellCompleteSubscriptions.Keys)
+                            {
+                                _cellButtonCompleteLastFiredTime.Remove(subscriptionId);
+                            }
+                        }
+                        
+                        // Вызываем событие отпускания для клетки (как будто кнопку отпустили над этой клеткой)
+                        if (_cellButtonUpSubscriptions.TryGetValue(cellKey, out var cellUpSubscriptions))
+                        {
+                            foreach (var subscription in cellUpSubscriptions.Values)
+                            {
+                                subscription.OnNext(Unit.Default);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Если обработчика больше нет, убираем таймер
+                    _cellButtonPressStartTime.Remove(cellKey);
+                    
+                    // Очищаем времена последнего срабатывания
+                    if (_cellButtonCompleteSubscriptions.TryGetValue(cellKey, out var cellCompleteSubscriptions))
+                    {
+                        foreach (var subscriptionId in cellCompleteSubscriptions.Keys)
+                        {
+                            _cellButtonCompleteLastFiredTime.Remove(subscriptionId);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
