@@ -116,8 +116,8 @@ public class PlantView : MonoBehaviour
         sequence.SetTarget(_visualTransform);
 
         var jumpTween = _visualTransform.DOJump(
-            _visualTransform.position + Vector3.up * 0.5f,
-            1f, 1, _harvestAnimationDuration)
+            _visualTransform.position + Vector3.up * 0.3f,
+            0.1f, 1, _harvestAnimationDuration)
             .SetTarget(_visualTransform);
 
         var fadeTween = _spriteRenderer.DOFade(0, _harvestAnimationDuration)
