@@ -10,16 +10,19 @@ public abstract class Skill : MonoBehaviour, IPointerClickHandler, IPointerEnter
 
     [SerializeField] private string _name;
     [SerializeField, TextArea] private string _description;
-    [SerializeField, Min(1)] private int _maxLevel;
+    [SerializeField, Min(1)] private int _maxLevel = 1;
     [SerializeField] private int _coinsUpgradeCost;
     [SerializeField] private List<PetalsUpgradeCost> _petalsUpgradeCosts = new();
     [SerializeField] private List<Skill> _children = new();
 
     private int _currentLevel = 0;
 
+    public IEconomyService EconomyService => _economyService;
     public IReadOnlyList<Skill> Children => _children;
     public string Name => _name;
     public string Description => _description;
+    public int MaxLevel => _maxLevel;
+    public int CurrentLevel => _currentLevel;
 
     public event Action OnHover;
     public event Action OnHoverExit;
@@ -27,13 +30,20 @@ public abstract class Skill : MonoBehaviour, IPointerClickHandler, IPointerEnter
     public event Action OnUnlock;
     public event Action<int> OnUpgrade;
 
+    private void Start()
+    {
+        OnUpgrade?.Invoke(_currentLevel);
+    }
+
     public void OnPointerClick(PointerEventData eventData)
     {
+        print($"Clicked on skill: {_name}");
         TryUpgrade();
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
+        print($"Hovered on skill: {_name}");
         OnHover?.Invoke();
     }
 
@@ -96,10 +106,8 @@ public abstract class Skill : MonoBehaviour, IPointerClickHandler, IPointerEnter
 
         return false;
     }
-
-    protected abstract void UpgradeHandle();
-
-    private bool CanUpgrade()
+    
+    public bool CanUpgrade()
     {
         foreach (var petalsCost in _petalsUpgradeCosts)
         {
@@ -113,6 +121,8 @@ public abstract class Skill : MonoBehaviour, IPointerClickHandler, IPointerEnter
 
         return _currentLevel < _maxLevel && hasEnoughCoins;
     }
+
+    protected abstract void UpgradeHandle();
 
     public struct PetalsUpgradeCost
     {
