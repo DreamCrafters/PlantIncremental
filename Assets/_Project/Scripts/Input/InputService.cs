@@ -277,6 +277,35 @@ public class InputService : IInputService, ITickable, ILateTickable, IDisposable
         return subject.AsObservable();
     }
 
+    public void RestartCellButtonTimer(IPlantEntity plantEntity)
+    {
+        if (plantEntity == null) return;
+        
+        var gridPosition = plantEntity.GridPosition;
+        var keyCode = PlayerInput.WateringAction;
+        var timing = InputTiming.LateTick;
+        var cellKey = (gridPosition, keyCode, timing);
+        
+        // Проверяем, что кнопка действительно зажата и мышь над клеткой
+        if (_cellHandlers.TryGetValue(gridPosition, out var handler) && handler.IsMouseOver)
+        {
+            if (_cellButtonStates.TryGetValue(cellKey, out var isPressed) && isPressed)
+            {
+                // Перезапускаем таймер - обновляем время начала нажатия
+                _cellButtonPressStartTime[cellKey] = Time.time;
+                
+                // Очищаем времена последнего срабатывания для всех подписок на complete события
+                if (_cellButtonCompleteSubscriptions.TryGetValue(cellKey, out var cellCompleteSubscriptions))
+                {
+                    foreach (var subscriptionId in cellCompleteSubscriptions.Keys)
+                    {
+                        _cellButtonCompleteLastFiredTime.Remove(subscriptionId);
+                    }
+                }
+            }
+        }
+    }
+
     public void RegisterCellHandler(Vector2Int gridPosition, LocalInputHandler handler)
     {
         if (handler == null) return;

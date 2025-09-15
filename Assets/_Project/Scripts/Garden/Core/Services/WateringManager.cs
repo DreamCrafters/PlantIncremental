@@ -12,6 +12,7 @@ public class WateringManager : IWateringManager
     private readonly ITimeService _timeService;
     private readonly GameSettings _gameSettings;
     private readonly IGridService _gridService;
+    private readonly IInputService _inputService;
 
     private readonly Dictionary<IPlantEntity, float> _lastWateringTimes = new();
     private readonly Dictionary<IPlantEntity, IDisposable> _witherTimers = new();
@@ -25,11 +26,12 @@ public class WateringManager : IWateringManager
     public IObservable<IPlantEntity> OnPlantWithered => _onPlantWithered;
 
     [Inject]
-    public WateringManager(ITimeService timeService, GameSettings gameSettings, IGridService gridService)
+    public WateringManager(ITimeService timeService, GameSettings gameSettings, IGridService gridService, IInputService inputService)
     {
-        _timeService = timeService ?? throw new ArgumentNullException(nameof(timeService));
-        _gameSettings = gameSettings ?? throw new ArgumentNullException(nameof(gameSettings));
-        _gridService = gridService ?? throw new ArgumentNullException(nameof(gridService));
+        _timeService = timeService;
+        _gameSettings = gameSettings;
+        _gridService = gridService;
+        _inputService = inputService;
     }
 
     public bool WaterPlant(IPlantEntity plant)
@@ -199,6 +201,7 @@ public class WateringManager : IWateringManager
             {
                 // Через N секунд растение требует полива для следующей стадии
                 plant.SetWaitingForWater(true);
+                _inputService.RestartCellButtonTimer(plant);
                 _growthTimers.Remove(plant);
             })
             .AddTo(_disposables);

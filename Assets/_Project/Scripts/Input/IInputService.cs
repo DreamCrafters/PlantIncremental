@@ -27,6 +27,9 @@ public interface IInputService
     IReadOnlyReactiveProperty<bool> SubscribeToCellButtonState(Vector2Int gridPosition, KeyCode keyCode, InputTiming timing);
     IObservable<Unit> SubscribeToCellButtonComplete(Vector2Int gridPosition, KeyCode keyCode, InputTiming timing, float longPressDuration = 1.0f);
 
+    // Методы для перезапуска таймеров
+    void RestartCellButtonTimer(IPlantEntity plant);
+
     // Методы для регистрации локальных обработчиков ввода
     void RegisterCellHandler(Vector2Int gridPosition, LocalInputHandler handler);
     void UnregisterCellHandler(Vector2Int gridPosition);
