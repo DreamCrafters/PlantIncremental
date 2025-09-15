@@ -13,12 +13,6 @@ public interface IWateringManager : IDisposable
     bool WaterPlant(IPlantEntity plant);
     
     /// <summary>
-    /// Запускает таймер увядания для растения
-    /// </summary>
-    /// <param name="plant">Растение для установки таймера</param>
-    void StartWitherTimer(IPlantEntity plant);
-    
-    /// <summary>
     /// Останавливает таймер увядания для растения
     /// </summary>
     /// <param name="plant">Растение для остановки таймера</param>

@@ -12,11 +12,11 @@ public class WateringManager : IWateringManager
     private readonly ITimeService _timeService;
     private readonly GameSettings _gameSettings;
     private readonly IGridService _gridService;
-    
+
     private readonly Dictionary<IPlantEntity, float> _lastWateringTimes = new();
     private readonly Dictionary<IPlantEntity, IDisposable> _witherTimers = new();
     private readonly Dictionary<IPlantEntity, IDisposable> _growthTimers = new();
-    
+
     private readonly Subject<IPlantEntity> _onPlantWatered = new();
     private readonly Subject<IPlantEntity> _onPlantWithered = new();
     private readonly CompositeDisposable _disposables = new();
@@ -40,6 +40,8 @@ public class WateringManager : IWateringManager
             return false;
         }
 
+        StartWitherTimer(plant);
+
         if (!NeedsWatering(plant))
         {
             return false;
@@ -47,7 +49,7 @@ public class WateringManager : IWateringManager
 
         // Записываем время полива
         _lastWateringTimes[plant] = _timeService.CurrentTime;
-        
+
         // НОВАЯ ЛОГИКА: Мгновенный переход к следующей стадии при поливе
         var currentStage = plant.State.Value;
         var nextStage = GetNextGrowthStage(currentStage);
@@ -56,49 +58,48 @@ public class WateringManager : IWateringManager
             // Мгновенно переводим в следующую стадию
             plant.UpdateState(nextStage.Value);
             plant.UpdateGrowthProgress(GetProgressForStage(nextStage.Value));
-            
+
             // Если это не финальная стадия - запускаем таймер для следующего полива
             if (nextStage.Value != PlantState.FullyGrown)
             {
                 var growthModifier = GetGrowthModifierForPlant(plant);
                 StartGrowthTimer(plant, growthModifier);
             }
+
         }
-        
+
         // Убираем флаг ожидания полива
         plant.SetWaitingForWater(false);
-        
+
         // Вызываем механики полива
         plant.TriggerWaterMechanics();
-        
+
         // Останавливаем таймер увядания
         StopWitherTimer(plant);
-        
+
         // Уведомляем о поливе
         _onPlantWatered.OnNext(plant);
-        
+
         return true;
     }
 
-    public void StartWitherTimer(IPlantEntity plant)
+    private void StartWitherTimer(IPlantEntity plant)
     {
         if (plant == null) return;
 
         // Останавливаем предыдущий таймер
         StopWitherTimer(plant);
+        Debug.Log($"Starting wither timer for plant at {plant.GridPosition}");
 
-        var witherTimer = _timeService.CreateTimer(TimeSpan.FromSeconds(_gameSettings.PlantSettings?.WitheringDuration ?? 10f))
+        var witherTimer = _timeService.CreateTimer(TimeSpan.FromSeconds(plant.Data.WitherTime))
             .Subscribe(_ =>
             {
-                if (NeedsWatering(plant))
-                {
-                    // Растение увядает
-                    plant.UpdateState(PlantState.Withered);
-                    plant.SetWaitingForWater(false); // Увядшее растение больше не ждет полива
-                    
-                    _onPlantWithered.OnNext(plant);
-                    _witherTimers.Remove(plant);
-                }
+                // Растение увядает
+                plant.UpdateState(PlantState.Withered);
+                plant.SetWaitingForWater(false); // Увядшее растение больше не ждет полива
+
+                _onPlantWithered.OnNext(plant);
+                _witherTimers.Remove(plant);
             })
             .AddTo(_disposables);
 
@@ -120,10 +121,6 @@ public class WateringManager : IWateringManager
     {
         if (plant == null) return false;
         
-        // Растение нуждается в поливе если:
-        // 1. Оно ожидает полива
-        // 2. Не увяло
-        // 3. Не полностью выросло
         return plant.IsWaitingForWater && 
                plant.State.Value != PlantState.Withered && 
                plant.State.Value != PlantState.FullyGrown;
@@ -186,11 +183,11 @@ public class WateringManager : IWateringManager
         // Защита от деления на ноль и переполнения TimeSpan
         const float minModifier = 0.01f;
         const float maxDurationSeconds = 86400f; // 24 часа максимум
-        
+
         growthModifier = Mathf.Max(growthModifier, minModifier);
-        float durationSeconds = plant.Data.GrowthTime / growthModifier / 2;
+        float durationSeconds = plant.Data.GrowthTimePerStage / growthModifier;
         durationSeconds = Mathf.Min(durationSeconds, maxDurationSeconds);
-        
+
         if (durationSeconds <= 0 || float.IsInfinity(durationSeconds) || float.IsNaN(durationSeconds))
         {
             Debug.LogWarning($"Invalid growth duration calculated for plant {plant.Data.name}: {durationSeconds}. Using default 10 seconds.");
@@ -257,9 +254,9 @@ public class WateringManager : IWateringManager
             timer?.Dispose();
         }
         _growthTimers.Clear();
-        
+
         _lastWateringTimes.Clear();
-        
+
         _onPlantWatered?.Dispose();
         _onPlantWithered?.Dispose();
         _disposables?.Dispose();

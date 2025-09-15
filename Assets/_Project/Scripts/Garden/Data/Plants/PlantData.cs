@@ -6,7 +6,8 @@ public class PlantData : ScriptableObject
 {
     public string DisplayName;
     public PlantStateInfo[] GrowthStages;
-    public float GrowthTime = 10f;
+    public float GrowthTimePerStage = 1f;
+    public float WitherTime = 10f;
     public int SellPrice = 20;
     public PlantType Type;
     public PlantRarity Rarity;

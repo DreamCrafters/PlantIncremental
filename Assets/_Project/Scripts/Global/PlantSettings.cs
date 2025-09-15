@@ -6,10 +6,6 @@ public class PlantSettings : ScriptableObject
     [Header("Plant Prefab")]
     public PlantView ViewPrefab;
     
-    [Header("Plant Lifecycle")]
-    [Min(0)] 
-    public float WitheringDuration = 10f;
-    
     [Header("Available Plants")]
     public PlantData[] AvailablePlants;
     
