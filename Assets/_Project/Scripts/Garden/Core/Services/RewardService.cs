@@ -3,17 +3,17 @@ using VContainer;
 /// <summary>
 /// Реализация сервиса наград
 /// </summary>
-public class RewardService : IRewardService
+public class RewardService
 {
-    private readonly IEconomyService _economyService;
+    private readonly EconomyService _economyService;
 
     [Inject]
-    public RewardService(IEconomyService economyService)
+    public RewardService(EconomyService economyService)
     {
         _economyService = economyService;
     }
 
-    public RewardResult ProcessHarvest(IPlantEntity plant)
+    public RewardResult ProcessHarvest(PlantEntity plant)
     {
         if (plant is not PlantEntity entity)
         {

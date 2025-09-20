@@ -14,5 +14,5 @@ public abstract class OnGrowthStageChangedMechanics : ScriptableObject
     /// </summary>
     /// <param name="plant">Растение у которого изменилась стадия</param>
     /// <param name="newState">Новая стадия роста</param>
-    public abstract void Execute(IPlantEntity plant, PlantState newState);
+    public abstract void Execute(PlantEntity plant, PlantState newState);
 }

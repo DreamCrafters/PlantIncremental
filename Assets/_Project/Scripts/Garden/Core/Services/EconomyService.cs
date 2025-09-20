@@ -2,7 +2,7 @@ using System;
 using UniRx;
 using UnityEngine;
 
-public class EconomyService : IEconomyService
+public class EconomyService
 {
     private readonly ReactiveProperty<int> _coins = new();
     private readonly PetalsCollection _petalsCollection = new();

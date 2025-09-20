@@ -11,7 +11,7 @@ public class SunflowerBoostNeighborsOnPlanted : OnPlantedMechanics
     [SerializeField] private float growthSpeedMultiplier = 1.5f;
     [SerializeField] private bool showDebugLog = true;
 
-    public override void Execute(IPlantEntity plant, Vector2Int gridPosition)
+    public override void Execute(PlantEntity plant, Vector2Int gridPosition)
     {
         if (showDebugLog)
         {
@@ -21,7 +21,7 @@ public class SunflowerBoostNeighborsOnPlanted : OnPlantedMechanics
         BoostNearbyPlants(plant, gridPosition);
     }
 
-    private void BoostNearbyPlants(IPlantEntity sunflower, Vector2Int position)
+    private void BoostNearbyPlants(PlantEntity sunflower, Vector2Int position)
     {
         // TODO: Реализовать логику ускорения роста соседних растений
         // Потребуется доступ к GridService для поиска соседних растений

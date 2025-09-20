@@ -10,16 +10,16 @@ using DG.Tweening;
 /// </summary>
 public class GameInitializer : IInitializable, IDisposable
 {
-    private readonly IEconomyService _economyService;
-    private readonly ISaveService _saveService;
+    private readonly EconomyService _economyService;
+    private readonly SaveService _saveService;
     private readonly GameSettings _settings;
 
     private readonly CompositeDisposable _disposables = new();
 
     [Inject]
     public GameInitializer(
-        IEconomyService economyService,
-        ISaveService saveService,
+        EconomyService economyService,
+        SaveService saveService,
         GameSettings settings)
     {
         _economyService = economyService;

@@ -8,7 +8,7 @@ using VContainer.Unity;
 /// <summary>
 /// Централизованный сервис для управления пользовательским вводом
 /// </summary>
-public class InputService : IInputService, ITickable, ILateTickable, IDisposable
+public class InputService : ITickable, ILateTickable, IDisposable
 {
     private readonly Camera _camera;
     private readonly CompositeDisposable _disposables = new();
@@ -277,7 +277,7 @@ public class InputService : IInputService, ITickable, ILateTickable, IDisposable
         return subject.AsObservable();
     }
 
-    public void RestartCellButtonTimer(IPlantEntity plantEntity)
+    public void RestartCellButtonTimer(PlantEntity plantEntity)
     {
         if (plantEntity == null) return;
         

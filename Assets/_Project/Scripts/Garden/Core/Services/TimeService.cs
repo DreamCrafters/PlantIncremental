@@ -5,7 +5,7 @@ using UnityEngine;
 /// <summary>
 /// Реализация сервиса времени, использующая Unity Time API
 /// </summary>
-public class TimeService : ITimeService
+public class TimeService
 {
     public float CurrentTime => Time.time;
     public float DeltaTime => Time.deltaTime;

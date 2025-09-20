@@ -7,26 +7,26 @@ using VContainer;
 /// <summary>
 /// Реализация менеджера полива растений
 /// </summary>
-public class WateringManager : IWateringManager
+public class WateringManager
 {
-    private readonly ITimeService _timeService;
+    private readonly TimeService _timeService;
     private readonly GameSettings _gameSettings;
-    private readonly IGridService _gridService;
-    private readonly IInputService _inputService;
+    private readonly GridService _gridService;
+    private readonly InputService _inputService;
 
-    private readonly Dictionary<IPlantEntity, float> _lastWateringTimes = new();
-    private readonly Dictionary<IPlantEntity, IDisposable> _witherTimers = new();
-    private readonly Dictionary<IPlantEntity, IDisposable> _growthTimers = new();
+    private readonly Dictionary<PlantEntity, float> _lastWateringTimes = new();
+    private readonly Dictionary<PlantEntity, IDisposable> _witherTimers = new();
+    private readonly Dictionary<PlantEntity, IDisposable> _growthTimers = new();
 
-    private readonly Subject<IPlantEntity> _onPlantWatered = new();
-    private readonly Subject<IPlantEntity> _onPlantWithered = new();
+    private readonly Subject<PlantEntity> _onPlantWatered = new();
+    private readonly Subject<PlantEntity> _onPlantWithered = new();
     private readonly CompositeDisposable _disposables = new();
 
-    public IObservable<IPlantEntity> OnPlantWatered => _onPlantWatered;
-    public IObservable<IPlantEntity> OnPlantWithered => _onPlantWithered;
+    public IObservable<PlantEntity> OnPlantWatered => _onPlantWatered;
+    public IObservable<PlantEntity> OnPlantWithered => _onPlantWithered;
 
     [Inject]
-    public WateringManager(ITimeService timeService, GameSettings gameSettings, IGridService gridService, IInputService inputService)
+    public WateringManager(TimeService timeService, GameSettings gameSettings, GridService gridService, InputService inputService)
     {
         _timeService = timeService;
         _gameSettings = gameSettings;
@@ -34,7 +34,7 @@ public class WateringManager : IWateringManager
         _inputService = inputService;
     }
 
-    public bool WaterPlant(IPlantEntity plant)
+    public bool WaterPlant(PlantEntity plant)
     {
         if (plant == null)
         {
@@ -85,13 +85,12 @@ public class WateringManager : IWateringManager
         return true;
     }
 
-    private void StartWitherTimer(IPlantEntity plant)
+    private void StartWitherTimer(PlantEntity plant)
     {
         if (plant == null) return;
 
         // Останавливаем предыдущий таймер
         StopWitherTimer(plant);
-        Debug.Log($"Starting wither timer for plant at {plant.GridPosition}");
 
         var witherTimer = _timeService.CreateTimer(TimeSpan.FromSeconds(plant.Data.WitherTime))
             .Subscribe(_ =>
@@ -108,7 +107,7 @@ public class WateringManager : IWateringManager
         _witherTimers[plant] = witherTimer;
     }
 
-    public void StopWitherTimer(IPlantEntity plant)
+    public void StopWitherTimer(PlantEntity plant)
     {
         if (plant == null) return;
 
@@ -119,7 +118,7 @@ public class WateringManager : IWateringManager
         }
     }
 
-    public bool NeedsWatering(IPlantEntity plant)
+    public bool NeedsWatering(PlantEntity plant)
     {
         if (plant == null) return false;
         
@@ -128,7 +127,7 @@ public class WateringManager : IWateringManager
                plant.State.Value != PlantState.FullyGrown;
     }
 
-    public float GetTimeSinceLastWatering(IPlantEntity plant)
+    public float GetTimeSinceLastWatering(PlantEntity plant)
     {
         if (plant == null) return 0f;
 
@@ -175,7 +174,7 @@ public class WateringManager : IWateringManager
     /// <summary>
     /// Запускает таймер роста для следующего полива
     /// </summary>
-    private void StartGrowthTimer(IPlantEntity plant, float growthModifier)
+    private void StartGrowthTimer(PlantEntity plant, float growthModifier)
     {
         if (plant == null) return;
 
@@ -212,7 +211,7 @@ public class WateringManager : IWateringManager
     /// <summary>
     /// Останавливает таймер роста для растения
     /// </summary>
-    private void StopGrowthTimer(IPlantEntity plant)
+    private void StopGrowthTimer(PlantEntity plant)
     {
         if (plant == null) return;
 
@@ -226,7 +225,7 @@ public class WateringManager : IWateringManager
     /// <summary>
     /// Получает модификатор роста для растения на основе типа почвы
     /// </summary>
-    private float GetGrowthModifierForPlant(IPlantEntity plant)
+    private float GetGrowthModifierForPlant(PlantEntity plant)
     {
         if (plant == null) return 1f;
 

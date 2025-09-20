@@ -13,13 +13,13 @@ public class WateringCursorView : MonoBehaviour
     [SerializeField] private Vector3 _cursorOffset = Vector3.zero;
     [SerializeField] private bool _followWorldPosition = true;
 
-    private IWateringVisualizationService _wateringVisualizationService;
-    private IInputService _inputService;
+    private WateringVisualizationService _wateringVisualizationService;
+    private InputService _inputService;
     private Camera _camera;
     private CompositeDisposable _disposables = new();
 
     [Inject]
-    public void Construct(IWateringVisualizationService wateringVisualizationService, IInputService inputService)
+    public void Construct(WateringVisualizationService wateringVisualizationService, InputService inputService)
     {
         _wateringVisualizationService = wateringVisualizationService;
         _inputService = inputService;

@@ -19,12 +19,12 @@ public class WateringEffectsView : MonoBehaviour
     [SerializeField] private bool _followCursorPosition = false;
     [SerializeField] private Vector3 _effectOffset = Vector3.zero;
     
-    private IWateringVisualizationService _wateringVisualizationService;
+    private WateringVisualizationService _wateringVisualizationService;
     private CompositeDisposable _disposables = new();
     private List<IDisposable> _delayedEffectDisposables = new();
     
     [Inject]
-    public void Construct(IWateringVisualizationService wateringVisualizationService)
+    public void Construct(WateringVisualizationService wateringVisualizationService)
     {
         _wateringVisualizationService = wateringVisualizationService;
     }

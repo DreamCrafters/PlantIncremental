@@ -12,7 +12,7 @@ public class RoseFragranceOnWatered : OnWateredMechanics
     [SerializeField] private int affectedRadius = 3;
     [SerializeField] private bool showDebugLog = true;
 
-    public override void Execute(IPlantEntity plant)
+    public override void Execute(PlantEntity plant)
     {
         if (showDebugLog)
         {
@@ -22,7 +22,7 @@ public class RoseFragranceOnWatered : OnWateredMechanics
         ApplyFragranceEffect(plant);
     }
 
-    private void ApplyFragranceEffect(IPlantEntity rose)
+    private void ApplyFragranceEffect(PlantEntity rose)
     {
         // TODO: Реализовать систему временных эффектов
         // В полной реализации здесь будет:
@@ -40,7 +40,7 @@ public class RoseFragranceOnWatered : OnWateredMechanics
         ShowFragranceVisualEffect(rose);
     }
 
-    private void ShowFragranceVisualEffect(IPlantEntity rose)
+    private void ShowFragranceVisualEffect(PlantEntity rose)
     {
         // TODO: Показать визуальный эффект распространения аромата
         // Волны, частицы, изменение цвета соседних растений и т.д.

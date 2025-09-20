@@ -10,7 +10,7 @@ public class ChamomileBonusCoinsOnHarvested : OnHarvestedMechanics
     [SerializeField] private int bonusCoins = 5;
     [SerializeField] private bool showDebugLog = true;
 
-    public override void Execute(IPlantEntity plant, PlantHarvestResult result)
+    public override void Execute(PlantEntity plant, PlantHarvestResult result)
     {
         // Добавляем бонусные монеты к результату
         result.Coins += bonusCoins;

@@ -22,7 +22,6 @@ public class PlantView : MonoBehaviour
     // Кэшированные компоненты
     private Vector3 _originalScale;
     private Color _originalColor;
-    private bool _isWithered = false;
 
     // Состояние
     private bool _isAnimating;
@@ -304,21 +303,6 @@ public class PlantView : MonoBehaviour
     }
 
     /// <summary>
-    /// Подсветка при наведении
-    /// </summary>
-    public void SetHighlight(bool active)
-    {
-        if (_spriteRenderer == null || _visualTransform == null || _isWithered) return;
-
-        if (active)
-        {
-        }
-        else
-        {
-        }
-    }
-
-    /// <summary>
     /// Публичный метод для остановки всех анимаций
     /// </summary>
     public void StopAllAnimations()
@@ -353,8 +337,6 @@ public class PlantView : MonoBehaviour
     /// </summary>
     private void SetWitheredVisual()
     {
-        _isWithered = true;
-
         // Останавливаем все эффекты
         StopPassiveEffect();
     }

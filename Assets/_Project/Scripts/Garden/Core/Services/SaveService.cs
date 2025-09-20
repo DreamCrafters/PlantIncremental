@@ -1,7 +1,7 @@
 using System;
 using UniRx;
 
-public class SaveService : ISaveService
+public class SaveService
 {
     public void Save(SaveData data)
     {

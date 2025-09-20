@@ -7,12 +7,12 @@ using VContainer.Unity;
 /// </summary>
 public class WateringVisualizationPresenter : IInitializable, System.IDisposable
 {
-    private readonly IWateringVisualizationService _wateringVisualizationService;
+    private readonly WateringVisualizationService _wateringVisualizationService;
     private readonly CompositeDisposable _disposables = new();
     
     [Inject]
     public WateringVisualizationPresenter(
-        IWateringVisualizationService wateringVisualizationService)
+        WateringVisualizationService wateringVisualizationService)
     {
         _wateringVisualizationService = wateringVisualizationService;
     }
@@ -23,13 +23,13 @@ public class WateringVisualizationPresenter : IInitializable, System.IDisposable
         // Например, логирование событий для отладки
         
         #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        _wateringVisualizationService.OnWateringVisualizationStarted
-            .Subscribe(_ => UnityEngine.Debug.Log("Watering visualization started"))
-            .AddTo(_disposables);
+        // _wateringVisualizationService.OnWateringVisualizationStarted
+        //     .Subscribe(_ => UnityEngine.Debug.Log("Watering visualization started"))
+        //     .AddTo(_disposables);
             
-        _wateringVisualizationService.OnWateringVisualizationStopped
-            .Subscribe(_ => UnityEngine.Debug.Log("Watering visualization stopped"))
-            .AddTo(_disposables);
+        // _wateringVisualizationService.OnWateringVisualizationStopped
+        //     .Subscribe(_ => UnityEngine.Debug.Log("Watering visualization stopped"))
+        //     .AddTo(_disposables);
         #endif
         
         // Можно добавить дополнительные подписки на события

@@ -5,13 +5,13 @@ using VContainer.Unity;
 
 public class EconomyPresenter : IInitializable, IDisposable
 {
-    private readonly IEconomyService _economy;
+    private readonly EconomyService _economy;
     private readonly CoinsView _view;
     private readonly PetalsView _petalsView;
     private readonly CompositeDisposable _disposables = new();
 
     [Inject]
-    public EconomyPresenter(IEconomyService economy, CoinsView view, PetalsView petalsView)
+    public EconomyPresenter(EconomyService economy, CoinsView view, PetalsView petalsView)
     {
         _economy = economy;
         _view = view;

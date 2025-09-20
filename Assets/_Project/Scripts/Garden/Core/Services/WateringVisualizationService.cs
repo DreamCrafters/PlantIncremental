@@ -6,9 +6,9 @@ using VContainer;
 /// <summary>
 /// Реализация сервиса для управления визуальными эффектами полива
 /// </summary>
-public class WateringVisualizationService : IWateringVisualizationService
+public class WateringVisualizationService
 {
-    private readonly IInputService _inputService;
+    private readonly InputService _inputService;
     private readonly CompositeDisposable _disposables = new();
     
     // Реактивные свойства
@@ -20,7 +20,7 @@ public class WateringVisualizationService : IWateringVisualizationService
     private readonly Subject<Unit> _onWateringVisualizationStopped = new();
     
     [Inject]
-    public WateringVisualizationService(IInputService inputService)
+    public WateringVisualizationService(InputService inputService)
     {
         _inputService = inputService;
         Initialize();

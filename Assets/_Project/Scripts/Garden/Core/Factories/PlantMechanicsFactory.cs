@@ -3,9 +3,9 @@ using UnityEngine;
 /// <summary>
 /// Реализация фабрики механик растений
 /// </summary>
-public class PlantMechanicsFactory : IPlantMechanicsFactory
+public class PlantMechanicsFactory
 {
-    public IPlantMechanics CreateMechanics(PlantData plantData)
+    public PlantMechanicsManager CreateMechanics(PlantData plantData)
     {
         if (plantData == null)
         {

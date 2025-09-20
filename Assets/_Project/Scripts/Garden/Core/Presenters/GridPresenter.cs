@@ -10,11 +10,11 @@ using VContainer.Unity;
 /// </summary>
 public class GridPresenter : IInitializable, IDisposable
 {
-    private readonly IGridService _gridService;
+    private readonly GridService _gridService;
     private readonly GridView _gridView;
-    private readonly IWateringManager _wateringManager;
-    private readonly IEconomyService _economyService;
-    private readonly IInputService _inputService;
+    private readonly WateringManager _wateringManager;
+    private readonly EconomyService _economyService;
+    private readonly InputService _inputService;
     private readonly GameSettings _settings;
 
     private readonly CompositeDisposable _disposables = new();
@@ -22,10 +22,10 @@ public class GridPresenter : IInitializable, IDisposable
 
     [Inject]
     public GridPresenter(
-        IGridService gridService,
-        IWateringManager wateringManager,
-        IEconomyService economyService,
-        IInputService inputService,
+        GridService gridService,
+        WateringManager wateringManager,
+        EconomyService economyService,
+        InputService inputService,
         GridView gridView,
         GameSettings settings)
     {
@@ -203,10 +203,7 @@ public class GridPresenter : IInitializable, IDisposable
     /// </summary>
     private void TryHarvestAt(Vector2Int position)
     {
-        if (_gridService.TryHarvestAt(position))
-        {
-            PlayHarvestEffect(position);
-        }
+        _gridService.TryHarvestAt(position);
     }
 
     /// <summary>
@@ -214,10 +211,7 @@ public class GridPresenter : IInitializable, IDisposable
     /// </summary>
     private void TryDestroyAt(Vector2Int position)
     {
-        if (_gridService.TryDestroyAt(position))
-        {
-            PlayDestroyEffect(position);
-        }
+        _gridService.TryDestroyAt(position);
     }
 
     /// <summary>
@@ -280,7 +274,7 @@ public class GridPresenter : IInitializable, IDisposable
     private void OnPlantDestroyed(PlantDestroyedEvent evt)
     {
         // Визуальные эффекты уничтожения
-        PlayDestroyEffect(evt.Position);
+        PlayDestroyEffect(evt.Position, evt.Plant);
 
         // Дополнительно можно показать уведомление игроку
         // например "Увядшее растение удалено"
@@ -304,16 +298,15 @@ public class GridPresenter : IInitializable, IDisposable
     /// <summary>
     /// Обработка события увядания растения
     /// </summary>
-    private void OnPlantWithered(IPlantEntity plant)
+    private void OnPlantWithered(PlantEntity plant)
     {
         // Можем добавить визуальные эффекты или уведомления
-        Debug.Log($"Plant withered at position {plant.Position}");
     }
 
     /// <summary>
     /// Обработка завершения полива (мгновенный полив)
     /// </summary>
-    private void OnWateringCompleted(IPlantEntity plant)
+    private void OnWateringCompleted(PlantEntity plant)
     {
         _wateringManager.WaterPlant(plant);
     }
@@ -343,16 +336,16 @@ public class GridPresenter : IInitializable, IDisposable
     /// <summary>
     /// Воспроизводит эффект уничтожения увядшего растения
     /// </summary>
-    private void PlayDestroyEffect(Vector2Int position)
+    private void PlayDestroyEffect(Vector2Int position, PlantEntity plant)
     {
         if (_cellViews.TryGetValue(position, out var cellView))
         {
             cellView.PlayDestroyEffect();
-            var cell = _gridService.GetCell(position);
 
-            if (cell?.Plant?.View != null)
+            if (plant?.View != null)
             {
-                cell.Plant.View.PlayDestroyAnimation();
+                Debug.Log("Playing destroy animation on plant view");
+                plant.View.PlayDestroyAnimation();
             }
         }
     }

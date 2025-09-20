@@ -17,4 +17,4 @@ MonoBehaviour:
     \u0440\u043E\u0441\u0442\u0430"
   showParticleEffects: 1
   playSoundEffects: 1
-  showDebugLog: 1
+  showDebugLog: 0

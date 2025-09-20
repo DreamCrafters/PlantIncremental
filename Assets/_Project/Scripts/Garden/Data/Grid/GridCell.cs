@@ -5,7 +5,7 @@ public class GridCell
 {
     public Vector2Int Position { get; }
     public SoilType SoilType { get; set; }
-    public IPlantEntity Plant { get; private set; }
+    public PlantEntity Plant { get; private set; }
 
     public bool IsEmpty => Plant == null;
 
@@ -16,7 +16,7 @@ public class GridCell
         Plant = null;
     }
 
-    public bool TryPlant(IPlantEntity plant)
+    public bool TryPlant(PlantEntity plant)
     {
         if (!IsEmpty) return false;
         Plant = plant;
@@ -30,7 +30,7 @@ public class GridCell
         return true;
     }
 
-    public IPlantEntity Harvest()
+    public PlantEntity Harvest()
     {
         var plant = Plant;
         Plant = null;

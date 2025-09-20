@@ -11,7 +11,7 @@ public class FlowerBloomEffectOnGrowth : OnGrowthStageChangedMechanics
     [SerializeField] private bool playSoundEffects = true;
     [SerializeField] private bool showDebugLog = true;
 
-    public override void Execute(IPlantEntity plant, PlantState newState)
+    public override void Execute(PlantEntity plant, PlantState newState)
     {
         switch (newState)
         {
@@ -33,7 +33,7 @@ public class FlowerBloomEffectOnGrowth : OnGrowthStageChangedMechanics
         }
     }
 
-    private void OnSeedStage(IPlantEntity plant)
+    private void OnSeedStage(PlantEntity plant)
     {
         if (showDebugLog)
         {
@@ -44,7 +44,7 @@ public class FlowerBloomEffectOnGrowth : OnGrowthStageChangedMechanics
         PlayEffect(plant, "seed_appear");
     }
 
-    private void OnGrowingStage(IPlantEntity plant)
+    private void OnGrowingStage(PlantEntity plant)
     {
         if (showDebugLog)
         {
@@ -55,7 +55,7 @@ public class FlowerBloomEffectOnGrowth : OnGrowthStageChangedMechanics
         PlayEffect(plant, "growth_sparkle");
     }
 
-    private void OnFullyGrownStage(IPlantEntity plant)
+    private void OnFullyGrownStage(PlantEntity plant)
     {
         if (showDebugLog)
         {
@@ -66,7 +66,7 @@ public class FlowerBloomEffectOnGrowth : OnGrowthStageChangedMechanics
         PlayEffect(plant, "bloom_burst");
     }
 
-    private void OnWitheredStage(IPlantEntity plant)
+    private void OnWitheredStage(PlantEntity plant)
     {
         if (showDebugLog)
         {
@@ -77,7 +77,7 @@ public class FlowerBloomEffectOnGrowth : OnGrowthStageChangedMechanics
         PlayEffect(plant, "wither_fade");
     }
 
-    private void PlayEffect(IPlantEntity plant, string effectName)
+    private void PlayEffect(PlantEntity plant, string effectName)
     {
         // TODO: Реализовать систему эффектов
         // Пока что заглушка для демонстрации архитектуры

@@ -10,11 +10,15 @@ using DG.Tweening;
 [RequireComponent(typeof(SpriteRenderer))]
 public class GridCellView : MonoBehaviour
 {
+    private const float CellMoveHeight = 0.05f;
+    private const float CellMoveDuration = 0.1f;
+
     private readonly List<Tween> _activeTweens = new();
 
     [Header("Visual Components")]
     [SerializeField] private SpriteRenderer _baseRenderer;
     [SerializeField] private SpriteRenderer _soilRenderer;
+    [SerializeField] private Transform _visualsParent;
 
     [Header("Sprites")]
     [SerializeField] private Sprite _fertileSprite;
@@ -37,10 +41,11 @@ public class GridCellView : MonoBehaviour
 
     // Кэш
     private Vector3 _originalScale;
+    private Vector3 _originalPosition;
 
     private void Awake()
     {
-        _originalScale = transform.localScale;
+        _originalScale = _visualsParent.localScale;
 
         // Добавляем компонент для обработки ввода
         if (gameObject.TryGetComponent(out _inputHandler) == false)
@@ -53,104 +58,14 @@ public class GridCellView : MonoBehaviour
         _inputHandler.OnPointerExited.Subscribe(OnCellPointerExit).AddTo(gameObject);
     }
 
+    private void Start()
+    {
+        _originalPosition = _visualsParent.localPosition;
+    }
+
     private void OnDestroy()
     {
         KillAllTweens();
-    }
-
-    #region Input Event Handlers
-
-    /// <summary>
-    /// Обработка наведения курсора
-    /// </summary>
-    private void OnCellPointerEnter(PointerEventData eventData)
-    {
-        if (_baseRenderer == null || transform == null) return;
-
-        // Легкая подсветка при наведении
-        _baseRenderer.color = Color.Lerp(_normalColor, _highlightColor, 0.3f);
-
-        var scaleTween = transform.DOScale(_originalScale * 1.02f, 0.1f)
-            .SetTarget(transform);
-        AddTween(scaleTween);
-
-        // Подсвечиваем растение если оно есть
-        if (_currentPlantView != null)
-        {
-            _currentPlantView.SetHighlight(true);
-        }
-    }
-
-    /// <summary>
-    /// Обработка ухода курсора
-    /// </summary>
-    private void OnCellPointerExit(PointerEventData eventData)
-    {
-        if (_baseRenderer == null || transform == null) return;
-
-        _baseRenderer.color = _normalColor;
-
-        var scaleTween = transform.DOScale(_originalScale, 0.1f)
-            .SetTarget(transform);
-        AddTween(scaleTween);
-
-        // Убираем подсветку растения если оно есть
-        if (_currentPlantView != null)
-        {
-            _currentPlantView.SetHighlight(false);
-        }
-    }
-
-    #endregion
-
-    /// <summary>
-    /// Безопасно убивает все активные твины
-    /// </summary>
-    private void KillAllTweens()
-    {
-        // Отменяем все активные твины из списка
-        for (int i = _activeTweens.Count - 1; i >= 0; i--)
-        {
-            if (_activeTweens[i] != null && _activeTweens[i].IsActive())
-            {
-                _activeTweens[i].Kill();
-            }
-        }
-        _activeTweens.Clear();
-
-        // Дополнительная очистка по объектам
-        DOTween.Kill(transform);
-        if (_baseRenderer != null) DOTween.Kill(_baseRenderer);
-        if (_soilRenderer != null) DOTween.Kill(_soilRenderer);
-    }
-
-    /// <summary>
-    /// Добавляет твин в список активных для отслеживания
-    /// </summary>
-    private void AddTween(Tween tween)
-    {
-        if (tween != null)
-        {
-            _activeTweens.Add(tween);
-
-            // Автоматически удаляем из списка по завершении
-            tween.OnComplete(() =>
-            {
-                if (tween != null)
-                {
-                    _activeTweens.Remove(tween);
-                }
-            });
-
-            // Дополнительная безопасность - удаляем из списка при убийстве
-            tween.OnKill(() =>
-            {
-                if (tween != null)
-                {
-                    _activeTweens.Remove(tween);
-                }
-            });
-        }
     }
 
     /// <summary>
@@ -184,7 +99,7 @@ public class GridCellView : MonoBehaviour
         _currentPlantView = plantView;
         if (plantView != null)
         {
-            plantView.transform.SetParent(transform);
+            plantView.transform.SetParent(_visualsParent);
             plantView.transform.localPosition = Vector3.zero;
         }
     }
@@ -192,7 +107,7 @@ public class GridCellView : MonoBehaviour
     /// <summary>
     /// Устанавливает сущность растения для клетки
     /// </summary>
-    public void SetPlantEntity(IPlantEntity plantEntity)
+    public void SetPlantEntity(PlantEntity plantEntity)
     {
         if (plantEntity != null)
         {
@@ -214,15 +129,15 @@ public class GridCellView : MonoBehaviour
             _plantEffect.Play();
         }
 
-        if (transform == null || _baseRenderer == null) return;
+        if (_visualsParent == null || _baseRenderer == null) return;
 
         // Анимация клетки при посадке
         var sequence = DOTween.Sequence();
-        sequence.SetTarget(transform);
+        sequence.SetTarget(_visualsParent);
 
-        var scale1 = transform.DOScale(_originalScale * 0.9f, 0.1f).SetTarget(transform);
-        var scale2 = transform.DOScale(_originalScale * 1.1f, 0.1f).SetTarget(transform);
-        var scale3 = transform.DOScale(_originalScale, 0.1f).SetTarget(transform);
+        var scale1 = _visualsParent.DOScale(_originalScale * 0.9f, 0.1f).SetTarget(_visualsParent);
+        var scale2 = _visualsParent.DOScale(_originalScale * 1.1f, 0.1f).SetTarget(_visualsParent);
+        var scale3 = _visualsParent.DOScale(_originalScale, 0.1f).SetTarget(_visualsParent);
 
         sequence.Append(scale1);
         sequence.Append(scale2);
@@ -248,14 +163,14 @@ public class GridCellView : MonoBehaviour
             _harvestEffect.Play();
         }
 
-        if (transform == null || _baseRenderer == null) return;
+        if (_visualsParent == null || _baseRenderer == null) return;
 
         // Анимация клетки при сборе
         var sequence = DOTween.Sequence();
-        sequence.SetTarget(transform);
+        sequence.SetTarget(_visualsParent);
 
-        var punchTween = transform.DOPunchScale(Vector3.one * 0.2f, 0.3f, 10, 1f)
-            .SetTarget(transform);
+        var punchTween = _visualsParent.DOPunchScale(Vector3.one * 0.2f, 0.3f, 10, 1f)
+            .SetTarget(_visualsParent);
         sequence.Append(punchTween);
 
         // Вспышка радости
@@ -275,24 +190,38 @@ public class GridCellView : MonoBehaviour
     /// </summary>
     public void PlayDestroyEffect()
     {
-        if (_destroyEffect != null)
-        {
-            _destroyEffect.Play();
-        }
-
-        if (transform == null || _baseRenderer == null) return;
-
-        // Анимация клетки при уничтожении
-        var sequence = DOTween.Sequence();
-        sequence.SetTarget(transform);
-
-        // Дрожание клетки
-        var shakeTween = transform.DOShakePosition(0.4f, strength: 0.01f, vibrato: 15)
-            .SetTarget(transform);
-        sequence.Append(shakeTween);
-
-        AddTween(sequence);
     }
+
+    #region Input Event Handlers
+
+    /// <summary>
+    /// Обработка наведения курсора
+    /// </summary>
+    private void OnCellPointerEnter(PointerEventData eventData)
+    {
+        if (_visualsParent == null) return;
+
+        // Поднимаем клетку к фиксированной позиции
+        var targetPosition = new Vector3(_originalPosition.x, _originalPosition.y + CellMoveHeight, _originalPosition.z);
+        var moveTween = _visualsParent.DOLocalMove(targetPosition, CellMoveDuration)
+            .SetTarget(_visualsParent);
+        AddTween(moveTween);
+    }
+
+    /// <summary>
+    /// Обработка ухода курсора
+    /// </summary>
+    private void OnCellPointerExit(PointerEventData eventData)
+    {
+        if (_visualsParent == null) return;
+
+        // Опускаем клетку к исходной позиции
+        var moveTween = _visualsParent.DOLocalMove(_originalPosition, 0.1f)
+            .SetTarget(_visualsParent);
+        AddTween(moveTween);
+    }
+
+    #endregion
 
     /// <summary>
     /// Устанавливает тип почвы для визуализации
@@ -326,5 +255,55 @@ public class GridCellView : MonoBehaviour
         }
 
         _currentSoilType = soilType;
+    }
+
+    /// <summary>
+    /// Безопасно убивает все активные твины
+    /// </summary>
+    private void KillAllTweens()
+    {
+        // Отменяем все активные твины из списка
+        for (int i = _activeTweens.Count - 1; i >= 0; i--)
+        {
+            if (_activeTweens[i] != null && _activeTweens[i].IsActive())
+            {
+                _activeTweens[i].Kill();
+            }
+        }
+        _activeTweens.Clear();
+
+        // Дополнительная очистка по объектам
+        DOTween.Kill(_visualsParent);
+        if (_baseRenderer != null) DOTween.Kill(_baseRenderer);
+        if (_soilRenderer != null) DOTween.Kill(_soilRenderer);
+    }
+
+    /// <summary>
+    /// Добавляет твин в список активных для отслеживания
+    /// </summary>
+    private void AddTween(Tween tween)
+    {
+        if (tween != null)
+        {
+            _activeTweens.Add(tween);
+
+            // Автоматически удаляем из списка по завершении
+            tween.OnComplete(() =>
+            {
+                if (tween != null)
+                {
+                    _activeTweens.Remove(tween);
+                }
+            });
+
+            // Дополнительная безопасность - удаляем из списка при убийстве
+            tween.OnKill(() =>
+            {
+                if (tween != null)
+                {
+                    _activeTweens.Remove(tween);
+                }
+            });
+        }
     }
 }

@@ -12,18 +12,18 @@ public static class GardenContainerExtensions
         builder.Register<InputService>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
 
         // Register core services
-        builder.Register<ITimeService, TimeService>(Lifetime.Singleton);
-        builder.Register<ISaveService, SaveService>(Lifetime.Singleton);
-        builder.Register<IEconomyService, EconomyService>(Lifetime.Singleton);
-        builder.Register<IRewardService, RewardService>(Lifetime.Singleton);
-        builder.Register<IGridService, GridService>(Lifetime.Singleton);
+        builder.Register<TimeService>(Lifetime.Singleton);
+        builder.Register<SaveService>(Lifetime.Singleton);
+        builder.Register<EconomyService>(Lifetime.Singleton);
+        builder.Register<RewardService>(Lifetime.Singleton);
+        builder.Register<GridService>(Lifetime.Singleton);
 
         // Register plant management services
-        builder.Register<IWateringManager, WateringManager>(Lifetime.Singleton);
-        builder.Register<IPlantMechanicsFactory, PlantMechanicsFactory>(Lifetime.Singleton);
+        builder.Register<WateringManager>(Lifetime.Singleton);
+        builder.Register<PlantMechanicsFactory>(Lifetime.Singleton);
 
         // Register input and visualization services
-        builder.Register<IWateringVisualizationService, WateringVisualizationService>(Lifetime.Singleton);
+        builder.Register<WateringVisualizationService>(Lifetime.Singleton);
 
         // Register views
         builder.RegisterInstance(coinsView).AsSelf();
@@ -31,7 +31,7 @@ public static class GardenContainerExtensions
         builder.RegisterInstance(petalsView).AsSelf();
 
         // Register factories
-        builder.Register<IPlantFactory, PlantFactory>(Lifetime.Singleton);
+        builder.Register<PlantFactory>(Lifetime.Singleton);
 
         // Entry points
         builder.UseEntryPoints(entryPoint =>

@@ -5,6 +5,6 @@ using UnityEngine;
 /// </summary>
 public struct PlantDestroyedEvent
 {
-    public IPlantEntity Plant;
+    public PlantEntity Plant;
     public Vector2Int Position;
 }

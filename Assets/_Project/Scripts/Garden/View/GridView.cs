@@ -9,7 +9,6 @@ using VContainer;
 public class GridView : MonoBehaviour
 {
     [Inject] private readonly GameSettings _gameSettings;
-    [Inject] private readonly IInputService _inputService;
 
     [Header("Prefabs")]
     [SerializeField] private GridCellView _cellPrefab;

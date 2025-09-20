@@ -6,7 +6,7 @@ using VContainer;
 
 public abstract class Skill : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
 {
-    [Inject] private readonly IEconomyService _economyService;
+    [Inject] private readonly EconomyService _economyService;
 
     [SerializeField] private string _name;
     [SerializeField, TextArea] private string _description;
@@ -17,7 +17,7 @@ public abstract class Skill : MonoBehaviour, IPointerClickHandler, IPointerEnter
 
     private int _currentLevel = 0;
 
-    public IEconomyService EconomyService => _economyService;
+    public EconomyService EconomyService => _economyService;
     public IReadOnlyList<Skill> Children => _children;
     public string Name => _name;
     public string Description => _description;

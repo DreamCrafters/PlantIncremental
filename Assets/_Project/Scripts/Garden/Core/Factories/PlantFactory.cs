@@ -2,21 +2,21 @@ using System;
 using UnityEngine;
 using VContainer;
 
-public class PlantFactory : IPlantFactory
+public class PlantFactory
 {
     private readonly IObjectResolver _resolver;
     private readonly GameSettings _settings;
-    private readonly IPlantMechanicsFactory _mechanicsFactory;
+    private readonly PlantMechanicsFactory _mechanicsFactory;
 
     [Inject]
-    public PlantFactory(IObjectResolver resolver, GameSettings settings, IPlantMechanicsFactory mechanicsFactory)
+    public PlantFactory(IObjectResolver resolver, GameSettings settings, PlantMechanicsFactory mechanicsFactory)
     {
-        _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
-        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-        _mechanicsFactory = mechanicsFactory ?? throw new ArgumentNullException(nameof(mechanicsFactory));
+        _resolver = resolver;
+        _settings = settings;
+        _mechanicsFactory = mechanicsFactory;
     }
 
-    public IPlantEntity CreatePlant(PlantData data)
+    public PlantEntity CreatePlant(PlantData data)
     {
         if (data == null)
         {

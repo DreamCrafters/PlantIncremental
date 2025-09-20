@@ -14,5 +14,5 @@ public abstract class OnHarvestedMechanics : ScriptableObject
     /// </summary>
     /// <param name="plant">Растение которое собирают</param>
     /// <param name="result">Результат сбора урожая, можно модифицировать</param>
-    public abstract void Execute(IPlantEntity plant, PlantHarvestResult result);
+    public abstract void Execute(PlantEntity plant, PlantHarvestResult result);
 }

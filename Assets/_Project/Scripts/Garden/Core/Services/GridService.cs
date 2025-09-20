@@ -3,7 +3,7 @@ using UniRx;
 using UnityEngine;
 using VContainer;
 
-public class GridService : IGridService, IDisposable
+public class GridService : IDisposable
 {
     private readonly ReactiveProperty<GridCell[,]> _grid;
     private readonly Subject<PlantHarvestedEvent> _onPlantHarvested = new();
@@ -11,8 +11,8 @@ public class GridService : IGridService, IDisposable
     private readonly CompositeDisposable _disposables = new();
 
     private readonly GameSettings _settings;
-    private readonly IPlantFactory _plantFactory;
-    private readonly IRewardService _rewardService;
+    private readonly PlantFactory _plantFactory;
+    private readonly RewardService _rewardService;
 
     private float _lastInteractionTime;
 
@@ -21,7 +21,7 @@ public class GridService : IGridService, IDisposable
     public IObservable<PlantDestroyedEvent> OnPlantDestroyed => _onPlantDestroyed;
 
     [Inject]
-    public GridService(GameSettings settings, IPlantFactory plantFactory, IRewardService rewardService)
+    public GridService(GameSettings settings, PlantFactory plantFactory, RewardService rewardService)
     {
         _settings = settings;
         _plantFactory = plantFactory;
@@ -369,12 +369,12 @@ public class GridService : IGridService, IDisposable
         return rarityChances[^1].Rarity;
     }
 
-    private bool CanHarvest(IPlantEntity plant)
+    private bool CanHarvest(PlantEntity plant)
     {
         return plant.State.Value == PlantState.FullyGrown;
     }
 
-    private bool CanDestroy(IPlantEntity plant)
+    private bool CanDestroy(PlantEntity plant)
     {
         return plant.State.Value == PlantState.Withered;
     }

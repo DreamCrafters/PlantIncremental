@@ -5,15 +5,16 @@ using UnityEngine;
 /// <summary>
 /// Основная сущность растения, представляющая модель данных с реактивными свойствами
 /// </summary>
-public class PlantEntity : IPlantEntity
+public class PlantEntity
 {
     private readonly ReactiveProperty<float> _growthProgress = new(0f);
     private readonly ReactiveProperty<PlantState> _state = new(PlantState.New);
     private readonly ReactiveProperty<bool> _isWaitingForWater = new(true);
     private readonly CompositeDisposable _disposables = new();
-
+    
+    private readonly PlantMechanicsManager _mechanics;
     private readonly PlantView _view;
-    private readonly IPlantMechanics _mechanics;
+
     private Vector2Int _gridPosition;
 
     public PlantData Data { get; }
@@ -27,11 +28,11 @@ public class PlantEntity : IPlantEntity
     public Vector2 Position => _view.transform.position;
     public Vector2Int GridPosition => _gridPosition;
 
-    public PlantEntity(PlantData data, PlantView view, IPlantMechanics mechanics)
+    public PlantEntity(PlantData data, PlantView view, PlantMechanicsManager mechanics)
     {
-        Data = data ?? throw new ArgumentNullException(nameof(data));
-        _view = view ?? throw new ArgumentNullException(nameof(view));
-        _mechanics = mechanics ?? throw new ArgumentNullException(nameof(mechanics));
+        Data = data;
+        _view = view;
+        _mechanics = mechanics;
 
         SubscribeToStateChanges();
         UpdateVisual();

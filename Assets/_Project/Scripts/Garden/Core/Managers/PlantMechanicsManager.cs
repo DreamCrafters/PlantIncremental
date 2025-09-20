@@ -4,7 +4,7 @@ using UnityEngine;
 /// Менеджер для управления всеми типами механик растений
 /// Композитный класс, который координирует выполнение модульных механик
 /// </summary>
-public class PlantMechanicsManager : IPlantMechanics
+public class PlantMechanicsManager
 {
     private readonly OnPlantedMechanics[] _onPlantedMechanics;
     private readonly OnWateredMechanics[] _onWateredMechanics;
@@ -17,13 +17,13 @@ public class PlantMechanicsManager : IPlantMechanics
         OnHarvestedMechanics[] onHarvestedMechanics,
         OnGrowthStageChangedMechanics[] onGrowthStageChangedMechanics)
     {
-        _onPlantedMechanics = onPlantedMechanics ?? new OnPlantedMechanics[0];
-        _onWateredMechanics = onWateredMechanics ?? new OnWateredMechanics[0];
-        _onHarvestedMechanics = onHarvestedMechanics ?? new OnHarvestedMechanics[0];
-        _onGrowthStageChangedMechanics = onGrowthStageChangedMechanics ?? new OnGrowthStageChangedMechanics[0];
+        _onPlantedMechanics = onPlantedMechanics;
+        _onWateredMechanics = onWateredMechanics;
+        _onHarvestedMechanics = onHarvestedMechanics;
+        _onGrowthStageChangedMechanics = onGrowthStageChangedMechanics;
     }
 
-    public void OnPlanted(IPlantEntity plant, Vector2Int gridPosition)
+    public void OnPlanted(PlantEntity plant, Vector2Int gridPosition)
     {
         foreach (var mechanic in _onPlantedMechanics)
         {
@@ -41,7 +41,7 @@ public class PlantMechanicsManager : IPlantMechanics
         }
     }
 
-    public void OnWatered(IPlantEntity plant)
+    public void OnWatered(PlantEntity plant)
     {
         foreach (var mechanic in _onWateredMechanics)
         {
@@ -59,7 +59,7 @@ public class PlantMechanicsManager : IPlantMechanics
         }
     }
 
-    public void OnHarvested(IPlantEntity plant, PlantHarvestResult result)
+    public void OnHarvested(PlantEntity plant, PlantHarvestResult result)
     {
         foreach (var mechanic in _onHarvestedMechanics)
         {
@@ -77,7 +77,7 @@ public class PlantMechanicsManager : IPlantMechanics
         }
     }
 
-    public void OnGrowthStageChanged(IPlantEntity plant, PlantState newState)
+    public void OnGrowthStageChanged(PlantEntity plant, PlantState newState)
     {
         foreach (var mechanic in _onGrowthStageChangedMechanics)
         {

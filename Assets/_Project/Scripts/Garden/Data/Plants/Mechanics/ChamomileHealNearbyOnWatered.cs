@@ -11,7 +11,7 @@ public class ChamomileHealNearbyOnWatered : OnWateredMechanics
     [SerializeField] private float healEffect = 0.2f;
     [SerializeField] private bool showDebugLog = true;
 
-    public override void Execute(IPlantEntity plant)
+    public override void Execute(PlantEntity plant)
     {
         if (showDebugLog)
         {
@@ -25,7 +25,7 @@ public class ChamomileHealNearbyOnWatered : OnWateredMechanics
         HealNearbyPlants(plant);
     }
 
-    private void HealNearbyPlants(IPlantEntity chamomile)
+    private void HealNearbyPlants(PlantEntity chamomile)
     {
         // Заглушка для демонстрации
         // В полной реализации здесь будет:
