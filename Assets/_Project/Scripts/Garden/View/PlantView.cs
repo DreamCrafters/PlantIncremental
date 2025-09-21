@@ -326,6 +326,14 @@ public class PlantView : MonoBehaviour
         }
         _activeTweens.Clear();
 
+        // Останавливаем переиспользуемую последовательность
+        if (_reusableSequence != null && _reusableSequence.IsActive())
+        {
+            _reusableSequence.Pause();
+            _reusableSequence.Rewind();
+        }
+        _sequenceInUse = false;
+
         // Дополнительная очистка по объектам
         DOTween.Kill(transform);
         if (_spriteRenderer != null) DOTween.Kill(_spriteRenderer);
@@ -374,9 +382,17 @@ public class PlantView : MonoBehaviour
     /// </summary>
     private void InitializeReusableSequence()
     {
+        if (_reusableSequence != null)
+        {
+            _reusableSequence.Kill();
+        }
+        
         _reusableSequence = DOTween.Sequence()
             .SetAutoKill(false)
+            .SetRecyclable(true)
             .Pause();
+            
+        _sequenceInUse = false;
     }
 
     /// <summary>
@@ -384,14 +400,16 @@ public class PlantView : MonoBehaviour
     /// </summary>
     private Sequence GetSequence()
     {
-        if (!_sequenceInUse && _reusableSequence != null && !_reusableSequence.IsActive())
+        // Проверяем, можем ли мы использовать переиспользуемую последовательность
+        if (!_sequenceInUse && _reusableSequence != null && 
+            _reusableSequence.IsActive() == false && _reusableSequence.IsPlaying() == false)
         {
             _sequenceInUse = true;
             _reusableSequence.Rewind();
             return _reusableSequence;
         }
         
-        // Если основная последовательность занята, создаем новую
+        // Если основная последовательность занята или неактивна, создаем новую
         return DOTween.Sequence();
     }
 
